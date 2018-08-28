@@ -65,7 +65,7 @@ while read -r fn; do
 
     (
         set -e
-        $fn
+        "$fn"
     )
 
     rc="$?"
