@@ -36,3 +36,40 @@ assert_stdout () {
 
     diff -du <(eval "$cmd") "$expected_file" >&2
 }
+
+
+## @fn _shute_do ()
+## @brief Run command in an isolated environment and return annotated output
+## @details The command is executed with errexit and nounset enabled
+## The output is machine-readable
+## @param cmd command. Will be passed to 'eval'
+##
+## Example
+##
+## @code{.sh}
+## $  _shute_do 'echo Hi; echo Bye >&2'
+## EXIT 0
+## STDERR Bye
+## TIME 0.002
+## STDOUT Hi
+## @endcode
+_shute_do () {
+    # shellcheck disable=SC2034
+    declare cmd="$1"
+    declare -i rc
+
+    TIMEFORMAT=%R
+
+    {
+        set +e
+
+        # change to double quotes to allow functions with parameters
+        time eval "(set -eu; $cmd)" 2> >(sed -e "s/^/STDERR /") > >(sed -e "s/^/STDOUT /")
+
+        rc="$?"
+        set -e
+
+    } 2> >(sed -e "s/^/TIME /")
+
+    printf 'EXIT %s\n' "$rc"
+}

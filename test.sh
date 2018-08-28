@@ -53,6 +53,66 @@ test_assert_stdout_stdin_success () {
     assert_stdout 'echo This is a test' <<< 'This is a test'
 }
 
+sample_test_case_1_successful () {
+    echo 'Hello'
+    echo 'World' >&2
+}
+
+sample_test_case_1_failing () {
+    echo 'Hello'
+    echo 'World' >&2
+
+    false
+
+    echo 'Should not see me'
+    echo 'Me either' >&2
+}
+
+test__shute_do_successful_stdout () {
+    _shute_do sample_test_case_1_successful | grep -q '^STDOUT Hello$'
+}
+
+test__shute_do_successful_stderr () {
+    _shute_do sample_test_case_1_successful | grep -q '^STDERR World$'
+}
+
+test__shute_do_successful_time () {
+    _shute_do sample_test_case_1_successful | grep -Eq '^TIME [0-9]*\.[0-9]+$'
+}
+
+test__shute_do_successful_exit () {
+    _shute_do sample_test_case_1_successful | grep -q '^EXIT 0$'
+}
+
+test__shute_do_failing_stdout () {
+    _shute_do sample_test_case_1_failing | grep -q '^STDOUT Hello$'
+}
+
+test__shute_do_failing_stderr () {
+    _shute_do sample_test_case_1_failing | grep -q '^STDERR World$'
+}
+
+test__shute_do_failing_time () {
+    _shute_do sample_test_case_1_failing | grep -Eq '^TIME [0-9]*\.[0-9]+$'
+}
+
+test__shute_do_failing_exit () {
+    _shute_do sample_test_case_1_failing | grep -q '^EXIT 1$'
+}
+
+test__shute_do_failing_errexit () {
+    _shute_do sample_test_case_1_failing | grep -Evq '(Should not see me|Me either)'
+}
+
+test__shute_do_eval () {
+    _shute_do 'echo Hello World' | grep -q '^STDOUT Hello World$'
+}
+
+test__shute_do_nounset () {
+    # shellcheck disable=SC2016
+    _shute_do 'unset foo; echo "$foo"' | grep -q '^EXIT 1$'
+}
+
 
 # A very basic test runner tokeep it simple while
 # testing the testing framework :)
