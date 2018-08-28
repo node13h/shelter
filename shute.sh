@@ -12,7 +12,7 @@ set -euo pipefail
 
 ## @fn assert_stdout ()
 ## @brief Assert command's STDOUT output matches the expected one
-## @details In case STDOUT outp does not match the expected -
+## @details In case STDOUT output does not match the expected -
 ## a diff will be printed to STDERR and the command will exit
 ## with a non-zero exit code
 ## @param cmd command. Will be passed to 'eval'
