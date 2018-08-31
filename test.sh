@@ -101,7 +101,7 @@ test__shute_do_failing_exit () {
 }
 
 test__shute_do_failing_errexit () {
-    _shute_do sample_test_case_1_failing | grep -Evq '(Should not see me|Me either)'
+    _shute_do sample_test_case_1_failing | grep -Ev '(STDOUT Should not see me|STDERR Me either)' >/dev/null
 }
 
 test__shute_do_eval () {
