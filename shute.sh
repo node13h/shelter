@@ -73,3 +73,79 @@ _shute_do () {
 
     printf 'EXIT %s\n' "$rc"
 }
+
+_shute_json_string () {
+    declare str="$1"
+
+    declare -A trans
+    declare hex
+
+    # shellcheck disable=SC1003
+    trans=([5c]='\\'
+           [22]='\"'
+           [08]='\b'
+           [0c]='\f'
+           [0a]='\n'
+           [0d]='\r'
+           [09]='\t')
+
+    for hex in "${!trans[@]}"; do
+        # shellcheck disable=SC2059
+        str="${str//$(printf "\\x${hex}")/${trans[$hex]}}"
+    done
+
+    printf '%s\n' "$str"
+}
+
+_shute_is_true () {
+    [[ "$1" = TRUE ]]
+}
+
+shute_run_test_case () {
+    declare class_name="$1"
+    declare cmd="$2"
+    declare partial="${3:-FALSE}"
+    declare key value
+    declare first_line=TRUE
+    declare exit_code
+    declare time
+
+    if _shute_is_true "$partial"; then
+        printf '{'
+    fi
+
+    printf '"%s": {' "$(_shute_json_string "$cmd")"
+    printf '"output": ['
+
+    while read -r key value; do
+        case "$key" in
+            EXIT)
+                exit_code="$value"
+                ;;
+            TIME)
+                time="$value"
+                ;;
+            STDOUT|STDERR)
+                if _shute_is_true "$first_line"; then
+                    first_line=FALSE
+                else
+                    printf ', '
+                fi
+
+                printf '{"%s": "%s"}' "$(_shute_json_string "$key")"  "$(_shute_json_string "$value")"
+               ;;
+        esac
+
+    done < <(_shute_do "$cmd")
+        printf '], '
+        printf '"time": "%s", ' "$(_shute_json_string "$time")"
+        printf '"class": "%s", ' "$class_name"
+        printf '"exit": %d' "$exit_code"
+        printf '}'
+
+    if _shute_is_true "$partial"; then
+        printf '}'
+    fi
+
+    printf '\n'
+}

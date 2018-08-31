@@ -113,6 +113,37 @@ test__shute_do_nounset () {
     _shute_do 'unset foo; echo "$foo"' | grep -q '^EXIT 1$'
 }
 
+test_shute_run_test_case_partial () (
+
+    _shute_do () {
+        cat <<"EOF"
+STDOUT Hello \
+STDERR "World"
+TIME 0.15
+EXIT 0
+EOF
+    }
+
+    diff -du <(shute_run_test_case testclass testfunction) - <<EOF
+"testfunction": {"output": [{"STDOUT": "Hello \\"}, {"STDERR": "\"World\""}], "time": "0.15", "class": "testclass", "exit": 0}
+EOF
+)
+
+test_shute_run_test_case_full () (
+
+    _shute_do () {
+        cat <<"EOF"
+STDOUT Hello \
+STDERR "World"
+TIME 0.15
+EXIT 0
+EOF
+    }
+
+    diff -du <(shute_run_test_case testclass testfunction TRUE) - <<EOF
+{"testfunction": {"output": [{"STDOUT": "Hello \\"}, {"STDERR": "\"World\""}], "time": "0.15", "class": "testclass", "exit": 0}}
+EOF
+)
 
 # A very basic test runner tokeep it simple while
 # testing the testing framework :)
