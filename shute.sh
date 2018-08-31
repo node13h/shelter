@@ -137,11 +137,12 @@ shute_run_test_case () {
         esac
 
     done < <(_shute_do "$cmd")
-        printf '], '
-        printf '"time": "%s", ' "$(_shute_json_string "$time")"
-        printf '"class": "%s", ' "$class_name"
-        printf '"exit": %d' "$exit_code"
-        printf '}'
+
+    printf '], '
+    printf '"time": "%s", ' "$(_shute_json_string "$time")"
+    printf '"class": "%s", ' "$class_name"
+    printf '"exit": %d' "$exit_code"
+    printf '}'
 
     if _shute_is_true "$partial"; then
         printf '}'
