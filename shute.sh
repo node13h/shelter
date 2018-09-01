@@ -44,21 +44,33 @@ assert_stdout () {
 ## The output is machine-readable
 ## @param cmd command. Will be passed to 'eval'
 ##
-## Example
+## Example (number of variables reduced for clarity)
 ##
 ## @code{.sh}
 ## $  _shute_do 'echo Hi; echo Bye >&2'
+## ENV SHLVL declare\ -x\ SHLVL=\"1\"
+## ENV TERM declare\ --\ TERM=\"dumb\"
+## ENV TIMEFORMAT declare\ --\ TIMEFORMAT=\"%R\"
+## ENV UID declare\ -ir\ UID=\"1000\"
+## ENV _ declare\ --\ _=\"var\"
+## ENV cmd declare\ --\ cmd=\"echo\ Hi\;\ echo\ Bye\ \>\&2\"
 ## EXIT 0
-## STDERR Bye
-## TIME 0.002
 ## STDOUT Hi
+## STDERR Bye
+## TIME 0.003
 ## @endcode
 _shute_do () {
     # shellcheck disable=SC2034
     declare cmd="$1"
     declare -i rc
+    declare var
 
     TIMEFORMAT=%R
+
+    # Output quoted variable declarations (to support values with newlines)
+    while read -r var; do
+        printf 'ENV %s %q\n' "$var" "$(declare -p "$var")"
+    done < <(compgen -A variable)
 
     {
         set +e
@@ -107,9 +119,10 @@ shute_run_test_case () {
     declare cmd="$2"
     declare partial="${3:-FALSE}"
     declare key value
-    declare first_line=TRUE
+    declare first_item
     declare exit_code
     declare time
+    declare -A env=()
 
     if _shute_is_true "$partial"; then
         printf '{'
@@ -117,6 +130,8 @@ shute_run_test_case () {
 
     printf '"%s": {' "$(_shute_json_string "$cmd")"
     printf '"output": ['
+
+    first_item=TRUE
 
     while read -r key value; do
         case "$key" in
@@ -126,20 +141,49 @@ shute_run_test_case () {
             TIME)
                 time="$value"
                 ;;
+            ENV)
+                env["${value%% *}"]="${value#* }"
+                ;;
             STDOUT|STDERR)
-                if _shute_is_true "$first_line"; then
-                    first_line=FALSE
+                if _shute_is_true "$first_item"; then
+                    first_item=FALSE
                 else
                     printf ', '
                 fi
 
-                printf '{"%s": "%s"}' "$(_shute_json_string "$key")"  "$(_shute_json_string "$value")"
+                printf '{"%s": "%s"}' \
+                       "$(_shute_json_string "$key")"  \
+                       "$(_shute_json_string "$value")"
                ;;
         esac
 
     done < <(_shute_do "$cmd")
 
     printf '], '
+
+    if [[ "${#env[@]}" -gt 0 ]]; then
+        printf '"env": {'
+
+        first_item=TRUE
+
+        for key in "${!env[@]}"; do
+            if _shute_is_true "$first_item"; then
+                first_item=FALSE
+            else
+                printf ', '
+            fi
+
+            # Unquote the value (see _shell_do)
+            value="$(eval "printf '%s\\n' ${env[$key]}")"
+            printf '"%s": "%s"' \
+                   "$(_shute_json_string "$key")" \
+                   "$(_shute_json_string "$value")"
+
+        done
+
+        printf '}, '
+    fi
+
     printf '"time": "%s", ' "$(_shute_json_string "$time")"
     printf '"class": "%s", ' "$class_name"
     printf '"exit": %d' "$exit_code"

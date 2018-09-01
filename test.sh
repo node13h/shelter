@@ -68,6 +68,12 @@ sample_test_case_1_failing () {
     echo 'Me either' >&2
 }
 
+test__shute_do_successful_env () {
+    #shellcheck disable=SC2034
+    declare shute_test_variable=hi
+    _shute_do sample_test_case_1_successful | grep '^ENV shute_test_variable declare\\ --\\ shute_test_variable=\\"hi\\"$' >/dev/null
+}
+
 test__shute_do_successful_stdout () {
     _shute_do sample_test_case_1_successful | grep -q '^STDOUT Hello$'
 }
@@ -82,6 +88,12 @@ test__shute_do_successful_time () {
 
 test__shute_do_successful_exit () {
     _shute_do sample_test_case_1_successful | grep -q '^EXIT 0$'
+}
+
+test__shute_do_failing_env () {
+    #shellcheck disable=SC2034
+    declare shute_test_variable=hi
+    _shute_do sample_test_case_1_failing | grep '^ENV shute_test_variable declare\\ --\\ shute_test_variable=\\"hi\\"$' >/dev/null
 }
 
 test__shute_do_failing_stdout () {
@@ -117,6 +129,8 @@ test_shute_run_test_case_partial () (
 
     _shute_do () {
         cat <<"EOF"
+ENV A declare\ --\ A=\"Two\ \ Spaces\"
+ENV B declare\ -a\ B=\(\[0\]=\"one\"\ \[1\]=\"two\"\)
 STDOUT Hello \
 STDERR "World"
 TIME 0.15
@@ -124,8 +138,8 @@ EXIT 0
 EOF
     }
 
-    diff -du <(shute_run_test_case testclass testfunction) - <<EOF
-"testfunction": {"output": [{"STDOUT": "Hello \\"}, {"STDERR": "\"World\""}], "time": "0.15", "class": "testclass", "exit": 0}
+    diff -du <(shute_run_test_case testclass testfunction) - <<"EOF"
+"testfunction": {"output": [{"STDOUT": "Hello \\"}, {"STDERR": "\"World\""}], "env": {"A": "declare -- A=\"Two  Spaces\"", "B": "declare -a B=([0]=\"one\" [1]=\"two\")"}, "time": "0.15", "class": "testclass", "exit": 0}
 EOF
 )
 
@@ -133,6 +147,8 @@ test_shute_run_test_case_full () (
 
     _shute_do () {
         cat <<"EOF"
+ENV A declare\ --\ A=\"Two\ \ Spaces\"
+ENV B declare\ -a\ B=\(\[0\]=\"one\"\ \[1\]=\"two\"\)
 STDOUT Hello \
 STDERR "World"
 TIME 0.15
@@ -140,8 +156,8 @@ EXIT 0
 EOF
     }
 
-    diff -du <(shute_run_test_case testclass testfunction TRUE) - <<EOF
-{"testfunction": {"output": [{"STDOUT": "Hello \\"}, {"STDERR": "\"World\""}], "time": "0.15", "class": "testclass", "exit": 0}}
+    diff -du <(shute_run_test_case testclass testfunction TRUE) - <<"EOF"
+{"testfunction": {"output": [{"STDOUT": "Hello \\"}, {"STDERR": "\"World\""}], "env": {"A": "declare -- A=\"Two  Spaces\"", "B": "declare -a B=([0]=\"one\" [1]=\"two\")"}, "time": "0.15", "class": "testclass", "exit": 0}}
 EOF
 )
 
