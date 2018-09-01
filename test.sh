@@ -54,7 +54,7 @@ test_assert_stdout_stdin_success () {
 }
 
 
-# A very basic test runner tokeep it simple while
+# A very basic test runner to keep it simple while
 # testing the testing framework :)
 
 declare fn rc status colour
