@@ -77,21 +77,22 @@ _shute_do () {
 _shute_json_string () {
     declare str="$1"
 
-    declare -A trans
-    declare hex
-
     # shellcheck disable=SC1003
-    trans=([5c]='\\'
-           [22]='\"'
-           [08]='\b'
-           [0c]='\f'
-           [0a]='\n'
-           [0d]='\r'
-           [09]='\t')
+    declare -a tr=(
+        '\' '\\'
+        '"' '\"'
+        $'\b' '\b'
+        $'\f' '\f'
+        $'\n' '\n'
+        $'\r' '\r'
+        $'\t' '\t'
+    )
 
-    for hex in "${!trans[@]}"; do
-        # shellcheck disable=SC2059
-        str="${str//$(printf "\\x${hex}")/${trans[$hex]}}"
+    set "${tr[@]}"
+
+    while [[ "${#}" -gt 1 ]]; do
+        str="${str//"${1}"/"${2}"}"
+        shift 2
     done
 
     printf '%s\n' "$str"
