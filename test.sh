@@ -75,19 +75,19 @@ test__shute_do_successful_env () {
 }
 
 test__shute_do_successful_stdout () {
-    _shute_do sample_test_case_1_successful | grep -q '^STDOUT Hello$'
+    _shute_do sample_test_case_1_successful | grep '^STDOUT Hello$' >/dev/null
 }
 
 test__shute_do_successful_stderr () {
-    _shute_do sample_test_case_1_successful | grep -q '^STDERR World$'
+    _shute_do sample_test_case_1_successful | grep '^STDERR World$' >/dev/null
 }
 
 test__shute_do_successful_time () {
-    _shute_do sample_test_case_1_successful | grep -Eq '^TIME [0-9]*\.[0-9]+$'
+    _shute_do sample_test_case_1_successful | grep -E '^TIME [0-9]*\.[0-9]+$' >/dev/null
 }
 
 test__shute_do_successful_exit () {
-    _shute_do sample_test_case_1_successful | grep -q '^EXIT 0$'
+    _shute_do sample_test_case_1_successful | grep '^EXIT 0$' >/dev/null
 }
 
 test__shute_do_failing_env () {
@@ -97,19 +97,19 @@ test__shute_do_failing_env () {
 }
 
 test__shute_do_failing_stdout () {
-    _shute_do sample_test_case_1_failing | grep -q '^STDOUT Hello$'
+    _shute_do sample_test_case_1_failing | grep '^STDOUT Hello$' >/dev/null
 }
 
 test__shute_do_failing_stderr () {
-    _shute_do sample_test_case_1_failing | grep -q '^STDERR World$'
+    _shute_do sample_test_case_1_failing | grep '^STDERR World$' >/dev/null
 }
 
 test__shute_do_failing_time () {
-    _shute_do sample_test_case_1_failing | grep -Eq '^TIME [0-9]*\.[0-9]+$'
+    _shute_do sample_test_case_1_failing | grep -E '^TIME [0-9]*\.[0-9]+$' >/dev/null
 }
 
 test__shute_do_failing_exit () {
-    _shute_do sample_test_case_1_failing | grep -q '^EXIT 1$'
+    _shute_do sample_test_case_1_failing | grep '^EXIT 1$' >/dev/null
 }
 
 test__shute_do_failing_errexit () {
@@ -117,12 +117,12 @@ test__shute_do_failing_errexit () {
 }
 
 test__shute_do_eval () {
-    _shute_do 'echo Hello World' | grep -q '^STDOUT Hello World$'
+    _shute_do 'echo Hello World' | grep '^STDOUT Hello World$' >/dev/null
 }
 
 test__shute_do_nounset () {
     # shellcheck disable=SC2016
-    _shute_do 'unset foo; echo "$foo"' | grep -q '^EXIT 1$'
+    _shute_do 'unset foo; echo "$foo"' | grep '^EXIT 1$' >/dev/null
 }
 
 test_shute_run_test_case_partial () (
