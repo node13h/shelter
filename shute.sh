@@ -31,8 +31,8 @@ set -euo pipefail
 ## assert_stdout 'bc << 1+1' <<< 2
 ## @endcode
 assert_stdout () {
-    local cmd="$1"
-    local expected_file="${2:--}"
+    declare cmd="$1"
+    declare expected_file="${2:--}"
 
     diff -du <(eval "$cmd") "$expected_file" >&2
 }
