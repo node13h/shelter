@@ -38,159 +38,59 @@ assert_stdout () {
 }
 
 
-## @fn _shute_do ()
-## @brief Run command in an isolated environment and return annotated output
-## @details The command is executed with errexit and nounset enabled
+## @fn shute_run_test_case ()
+## @brief Run command in an isolated environment and return an annotated output
+## @details The command is executed with errexit and nounset enabled.
+## STDOUT and STDERR are processed by separate threads, therefore might
+## be slightly out of order in relation to each other. Ordering within a
+## single stream (STDOUT or STDERR) is guaranteed to be correct
 ## The output is machine-readable
 ## @param cmd command. Will be passed to 'eval'
 ##
 ## Example (number of variables reduced for clarity)
 ##
 ## @code{.sh}
-## $  _shute_do 'echo Hi; echo Bye >&2'
-## ENV SHLVL declare\ -x\ SHLVL=\"1\"
+## $ shute_run_test_case 'echo Hi; echo Bye >&2; echo Hi again'
+## CMD echo Hi; echo Bye >&2; echo Hi again
+## ENV BASH declare\ --\ BASH=\"/usr/bin/bash\"
 ## ENV TERM declare\ --\ TERM=\"dumb\"
 ## ENV TIMEFORMAT declare\ --\ TIMEFORMAT=\"%R\"
 ## ENV UID declare\ -ir\ UID=\"1000\"
 ## ENV _ declare\ --\ _=\"var\"
-## ENV cmd declare\ --\ cmd=\"echo\ Hi\;\ echo\ Bye\ \>\&2\"
 ## EXIT 0
-## STDOUT Hi
-## STDERR Bye
-## TIME 0.003
+## TIME 0.009
+## STDOUT 1 Hi
+## STDERR 2 Bye
+## STDOUT 3 Hi again
 ## @endcode
-_shute_do () {
-    # shellcheck disable=SC2034
-    declare cmd="$1"
-    declare -i rc
-    declare var
+shute_run_test_case () {
 
     TIMEFORMAT=%R
 
-    # Output quoted variable declarations (to support values with newlines)
+    printf 'CMD %s\n' "$1"
+
+    declare var
+
     while read -r var; do
         printf 'ENV %s %q\n' "$var" "$(declare -p "$var")"
     done < <(compgen -A variable)
 
+    unset var
+
     {
         set +e
 
-        time eval "(set -eu; $cmd)" 2> >(sed -e "s/^/STDERR /") > >(sed -e "s/^/STDOUT /")
+        # sequence numbers added by the last component allow
+        # user to perform sorting (sort -V) to split STDOUT and STDERR into
+        # separate blocks (preserving the correct order within the block)
+        # and reassemble back into a single block later (sort -V -k 2).
+        time eval '(set -eu; eval "$1" 2> >(sed -u -e "s/^/STDERR /") > >(sed -u -e "s/^/STDOUT /"))' > >(grep -n '.' | sed -u 's/^\([0-9]\+\):\(STDOUT\|STDERR\) /\2 \1 /')
 
-        rc="$?"
+        declare rc="$?"
+
         set -e
 
-    } 2> >(sed -e "s/^/TIME /")
+    } 2> >(sed -u -e "s/^/TIME /")
 
     printf 'EXIT %s\n' "$rc"
-}
-
-_shute_json_string () {
-    declare str="$1"
-
-    # shellcheck disable=SC1003
-    declare -a tr=(
-        '\' '\\'
-        '"' '\"'
-        $'\b' '\b'
-        $'\f' '\f'
-        $'\n' '\n'
-        $'\r' '\r'
-        $'\t' '\t'
-    )
-
-    set "${tr[@]}"
-
-    while [[ "${#}" -gt 1 ]]; do
-        str="${str//"${1}"/"${2}"}"
-        shift 2
-    done
-
-    printf '%s\n' "$str"
-}
-
-_shute_is_true () {
-    [[ "$1" = TRUE ]]
-}
-
-shute_run_test_case () {
-    declare class_name="$1"
-    declare cmd="$2"
-    declare partial="${3:-FALSE}"
-    declare key value
-    declare first_item
-    declare exit_code
-    declare time
-    declare -A env=()
-
-    if _shute_is_true "$partial"; then
-        printf '{'
-    fi
-
-    printf '"%s": {' "$(_shute_json_string "$cmd")"
-    printf '"output": ['
-
-    first_item=TRUE
-
-    while read -r key value; do
-        case "$key" in
-            EXIT)
-                exit_code="$value"
-                ;;
-            TIME)
-                time="$value"
-                ;;
-            ENV)
-                env["${value%% *}"]="${value#* }"
-                ;;
-            STDOUT|STDERR)
-                if _shute_is_true "$first_item"; then
-                    first_item=FALSE
-                else
-                    printf ', '
-                fi
-
-                printf '{"%s": "%s"}' \
-                       "$(_shute_json_string "$key")"  \
-                       "$(_shute_json_string "$value")"
-               ;;
-        esac
-
-    done < <(_shute_do "$cmd")
-
-    printf '], '
-
-    if [[ "${#env[@]}" -gt 0 ]]; then
-        printf '"env": {'
-
-        first_item=TRUE
-
-        for key in "${!env[@]}"; do
-            if _shute_is_true "$first_item"; then
-                first_item=FALSE
-            else
-                printf ', '
-            fi
-
-            # Unquote the value (see _shell_do)
-            value="$(eval "printf '%s\\n' ${env[$key]}")"
-            printf '"%s": "%s"' \
-                   "$(_shute_json_string "$key")" \
-                   "$(_shute_json_string "$value")"
-
-        done
-
-        printf '}, '
-    fi
-
-    printf '"time": "%s", ' "$(_shute_json_string "$time")"
-    printf '"class": "%s", ' "$class_name"
-    printf '"exit": %d' "$exit_code"
-    printf '}'
-
-    if _shute_is_true "$partial"; then
-        printf '}'
-    fi
-
-    printf '\n'
 }

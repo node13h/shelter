@@ -56,6 +56,8 @@ test_assert_stdout_stdin_success () {
 sample_test_case_1_successful () {
     echo 'Hello'
     echo 'World' >&2
+    echo "How's life?"
+    echo 'Hello?' >&2
 }
 
 sample_test_case_1_failing () {
@@ -68,98 +70,65 @@ sample_test_case_1_failing () {
     echo 'Me either' >&2
 }
 
-test__shute_do_successful_env () {
-    #shellcheck disable=SC2034
+_predictable_test_case_output () {
+    # 1. replace TIME value with static 0.01
+    # 2. natural sort to split STDOUT and STDERR into separate blocks (sequence numbers will ensure the correct ordering within a block)
+    # 3. remove sequence numbers, which may differ between runs due to the multithreaded processing of STDOUT and STDERR
+    sed 's/^TIME [0-9]*\.[0-9]\+$/TIME 0.01/' | sort -V | sed 's/\(STDOUT\|STDERR\) [0-9]\+/\1/'
+}
+
+_exclude_env () {
+    grep -v '^ENV '
+}
+
+test_shute_run_test_case_successful_env () {
+    # shellcheck disable=SC2034
     declare shute_test_variable=hi
-    _shute_do sample_test_case_1_successful | grep '^ENV shute_test_variable declare\\ --\\ shute_test_variable=\\"hi\\"$' >/dev/null
+
+    shute_run_test_case sample_test_case_1_successful | grep '^ENV shute_test_variable declare\\ --\\ shute_test_variable=\\"hi\\"$' >/dev/null
 }
 
-test__shute_do_successful_stdout () {
-    _shute_do sample_test_case_1_successful | grep '^STDOUT Hello$' >/dev/null
+test_shute_run_test_case_successful_env_missing () {
+    unset shute_test_variable
+
+    shute_run_test_case sample_test_case_1_successful | { ! grep '^ENV shute_test_variable declare\\ --\\ shute_test_variable=\\"hi\\"$' >/dev/null; }
 }
 
-test__shute_do_successful_stderr () {
-    _shute_do sample_test_case_1_successful | grep '^STDERR World$' >/dev/null
+test_shute_run_test_case_successful () {
+    diff -du <(shute_run_test_case sample_test_case_1_successful | _exclude_env | _predictable_test_case_output) - <<"EOF"
+CMD sample_test_case_1_successful
+EXIT 0
+STDERR World
+STDERR Hello?
+STDOUT Hello
+STDOUT How's life?
+TIME 0.01
+EOF
 }
 
-test__shute_do_successful_time () {
-    _shute_do sample_test_case_1_successful | grep -E '^TIME [0-9]*\.[0-9]+$' >/dev/null
+test_shute_run_test_case_failing () {
+    diff -du <(shute_run_test_case sample_test_case_1_failing | _exclude_env | _predictable_test_case_output) - <<"EOF"
+CMD sample_test_case_1_failing
+EXIT 1
+STDERR World
+STDOUT Hello
+TIME 0.01
+EOF
 }
 
-test__shute_do_successful_exit () {
-    _shute_do sample_test_case_1_successful | grep '^EXIT 0$' >/dev/null
+test_shute_run_test_case_eval () {
+    diff -du <(shute_run_test_case 'echo "Hello World"' | _exclude_env | _predictable_test_case_output) - <<"EOF"
+CMD echo "Hello World"
+EXIT 0
+STDOUT Hello World
+TIME 0.01
+EOF
 }
 
-test__shute_do_failing_env () {
-    #shellcheck disable=SC2034
-    declare shute_test_variable=hi
-    _shute_do sample_test_case_1_failing | grep '^ENV shute_test_variable declare\\ --\\ shute_test_variable=\\"hi\\"$' >/dev/null
-}
-
-test__shute_do_failing_stdout () {
-    _shute_do sample_test_case_1_failing | grep '^STDOUT Hello$' >/dev/null
-}
-
-test__shute_do_failing_stderr () {
-    _shute_do sample_test_case_1_failing | grep '^STDERR World$' >/dev/null
-}
-
-test__shute_do_failing_time () {
-    _shute_do sample_test_case_1_failing | grep -E '^TIME [0-9]*\.[0-9]+$' >/dev/null
-}
-
-test__shute_do_failing_exit () {
-    _shute_do sample_test_case_1_failing | grep '^EXIT 1$' >/dev/null
-}
-
-test__shute_do_failing_errexit () {
-    _shute_do sample_test_case_1_failing | grep -Ev '(STDOUT Should not see me|STDERR Me either)' >/dev/null
-}
-
-test__shute_do_eval () {
-    _shute_do 'echo Hello World' | grep '^STDOUT Hello World$' >/dev/null
-}
-
-test__shute_do_nounset () {
+test_shute_run_test_case_nounset () {
     # shellcheck disable=SC2016
-    _shute_do 'unset foo; echo "$foo"' | grep '^EXIT 1$' >/dev/null
+    shute_run_test_case 'unset foo; echo "$foo"' | grep '^EXIT 1$' >/dev/null
 }
-
-test_shute_run_test_case_partial () (
-
-    _shute_do () {
-        cat <<"EOF"
-ENV A declare\ --\ A=\"Two\ \ Spaces\"
-ENV B declare\ -a\ B=\(\[0\]=\"one\"\ \[1\]=\"two\"\)
-STDOUT Hello \
-STDERR "World"
-TIME 0.15
-EXIT 0
-EOF
-    }
-
-    diff -du <(shute_run_test_case testclass testfunction) - <<"EOF"
-"testfunction": {"output": [{"STDOUT": "Hello \\"}, {"STDERR": "\"World\""}], "env": {"A": "declare -- A=\"Two  Spaces\"", "B": "declare -a B=([0]=\"one\" [1]=\"two\")"}, "time": "0.15", "class": "testclass", "exit": 0}
-EOF
-)
-
-test_shute_run_test_case_full () (
-
-    _shute_do () {
-        cat <<"EOF"
-ENV A declare\ --\ A=\"Two\ \ Spaces\"
-ENV B declare\ -a\ B=\(\[0\]=\"one\"\ \[1\]=\"two\"\)
-STDOUT Hello \
-STDERR "World"
-TIME 0.15
-EXIT 0
-EOF
-    }
-
-    diff -du <(shute_run_test_case testclass testfunction TRUE) - <<"EOF"
-{"testfunction": {"output": [{"STDOUT": "Hello \\"}, {"STDERR": "\"World\""}], "env": {"A": "declare -- A=\"Two  Spaces\"", "B": "declare -a B=([0]=\"one\" [1]=\"two\")"}, "time": "0.15", "class": "testclass", "exit": 0}}
-EOF
-)
 
 # A very basic test runner to keep it simple while
 # testing the testing framework :)
