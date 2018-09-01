@@ -75,7 +75,6 @@ _shute_do () {
     {
         set +e
 
-        # change to double quotes to allow functions with parameters
         time eval "(set -eu; $cmd)" 2> >(sed -e "s/^/STDERR /") > >(sed -e "s/^/STDOUT /")
 
         rc="$?"
