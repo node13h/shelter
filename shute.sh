@@ -139,6 +139,34 @@ shute_run_test_class () {
 }
 
 
+## @fn shute_run_test_suite ()
+## @brief Run a command which runs multiple tests cases as a test suite
+## @details The output is similar to running multiple test cases in
+## sequence with some suite data starting with the SUITE
+## keyword added at the top
+## @param cmd command. Will be passed to 'eval'
+##
+## Example (assumes there is a "suite_1" command which executes
+## "shute_run_test_case test_1" and "shute_run_test_case test_2" commands.
+## Outut reduced for clarity)
+##
+## @code{.sh}
+## $ shute_run_test_suite suite_1
+## SUITE ERRORS 1
+## SUITE FAILURES 0
+## SUITE NAME suite_1
+## SUITE SKIPPED 0
+## SUITE TESTS 2
+## SUITE TIME 1.51
+## CMD test_1
+## EXIT 0
+## TIME 0.01
+## ...
+## CMD test_2
+## EXIT 1
+## TIME 1.5
+## ...
+## @endcode
 shute_run_test_suite () {
     declare -i shute_suite_tests=0
     declare -i shute_suite_errors=0
