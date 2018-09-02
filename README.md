@@ -1,1 +1,1 @@
-# shute - Shell unit-testing framework
+# shelter - Shell-based testing framework

@@ -8,8 +8,8 @@ set -euo pipefail
 declare -g PROG_DIR
 PROG_DIR=$(dirname "${BASH_SOURCE[@]}")
 
-# shellcheck source=shute.sh
-source "${PROG_DIR%/}/shute.sh"
+# shellcheck source=shelter.sh
+source "${PROG_DIR%/}/shelter.sh"
 
 
 test_assert_stdout_success () {
@@ -84,21 +84,21 @@ _exclude_env () {
     grep -v '^ENV '
 }
 
-test_shute_run_test_case_successful_env () {
+test_shelter_run_test_case_successful_env () {
     # shellcheck disable=SC2034
-    declare shute_test_variable=hi
+    declare shelter_test_variable=hi
 
-    shute_run_test_case sample_test_case_1_successful | grep '^ENV shute_test_variable declare\\ --\\ shute_test_variable=\\"hi\\"$' >/dev/null
+    shelter_run_test_case sample_test_case_1_successful | grep '^ENV shelter_test_variable declare\\ --\\ shelter_test_variable=\\"hi\\"$' >/dev/null
 }
 
-test_shute_run_test_case_successful_env_missing () {
-    unset shute_test_variable
+test_shelter_run_test_case_successful_env_missing () {
+    unset shelter_test_variable
 
-    shute_run_test_case sample_test_case_1_successful | { ! grep '^ENV shute_test_variable declare\\ --\\ shute_test_variable=\\"hi\\"$' >/dev/null; }
+    shelter_run_test_case sample_test_case_1_successful | { ! grep '^ENV shelter_test_variable declare\\ --\\ shelter_test_variable=\\"hi\\"$' >/dev/null; }
 }
 
-test_shute_run_test_case_successful () {
-    diff -du <(shute_run_test_case sample_test_case_1_successful | _exclude_env | _predictable_test_case_output) - <<"EOF"
+test_shelter_run_test_case_successful () {
+    diff -du <(shelter_run_test_case sample_test_case_1_successful | _exclude_env | _predictable_test_case_output) - <<"EOF"
 CMD sample_test_case_1_successful
 EXIT 0
 STDERR World
@@ -109,8 +109,8 @@ TIME 0.01
 EOF
 }
 
-test_shute_run_test_case_failing () {
-    diff -du <(shute_run_test_case sample_test_case_1_failing | _exclude_env | _predictable_test_case_output) - <<"EOF"
+test_shelter_run_test_case_failing () {
+    diff -du <(shelter_run_test_case sample_test_case_1_failing | _exclude_env | _predictable_test_case_output) - <<"EOF"
 CMD sample_test_case_1_failing
 EXIT 1
 STDERR World
@@ -119,8 +119,8 @@ TIME 0.01
 EOF
 }
 
-test_shute_run_test_case_eval () {
-    diff -du <(shute_run_test_case 'echo "Hello World"' | _exclude_env | _predictable_test_case_output) - <<"EOF"
+test_shelter_run_test_case_eval () {
+    diff -du <(shelter_run_test_case 'echo "Hello World"' | _exclude_env | _predictable_test_case_output) - <<"EOF"
 CMD echo "Hello World"
 EXIT 0
 STDOUT Hello World
@@ -128,22 +128,22 @@ TIME 0.01
 EOF
 }
 
-test_shute_run_test_case_nounset () {
+test_shelter_run_test_case_nounset () {
     # shellcheck disable=SC2016
-    shute_run_test_case 'unset foo; echo "$foo"' | grep '^EXIT 1$' >/dev/null
+    shelter_run_test_case 'unset foo; echo "$foo"' | grep '^EXIT 1$' >/dev/null
 }
 
-test_shute_run_test_case_skipped () {
-    SHUTE_SKIP_TEST_CASES=('sample_test_case_1_successful')
-    diff -du <(shute_run_test_case sample_test_case_1_successful) - <<"EOF"
+test_shelter_run_test_case_skipped () {
+    SHELTER_SKIP_TEST_CASES=('sample_test_case_1_successful')
+    diff -du <(shelter_run_test_case sample_test_case_1_successful) - <<"EOF"
 SKIPPED sample_test_case_1_successful
 EOF
 }
 
-test_shute_run_test_class_name () (
+test_shelter_run_test_class_name () (
 
     # Mock
-    shute_run_test_case () {
+    shelter_run_test_case () {
         printf 'CMD %s\n' "$1"
         cat <<"EOF"
 ENV RANDOM declare\ -i\ RANDOM=\"31895\"
@@ -154,7 +154,7 @@ TIME 0.01
 EOF
     }
 
-    diff -du <(shute_run_test_class testclass sample_test_case_1_) - <<"EOF"
+    diff -du <(shelter_run_test_class testclass sample_test_case_1_) - <<"EOF"
 CMD sample_test_case_1_failing
 ENV RANDOM declare\ -i\ RANDOM=\"31895\"
 ENV SECONDS declare\ -i\ SECONDS=\"1\"
@@ -172,36 +172,36 @@ CLASS testclass
 EOF
 )
 
-test_shute_run_test_class_single () (
+test_shelter_run_test_class_single () (
 
     # Mock
-    shute_run_test_case () {
+    shelter_run_test_case () {
         printf 'CMD %s\n' "$1"
     }
 
-    diff -du <(shute_run_test_class testclass sample_test_case_1_succ) - <<"EOF"
+    diff -du <(shelter_run_test_class testclass sample_test_case_1_succ) - <<"EOF"
 CMD sample_test_case_1_successful
 CLASS testclass
 EOF
 )
 
-test_shute_run_test_class_none () (
+test_shelter_run_test_class_none () (
 
     # Mock
-    shute_run_test_case () {
+    shelter_run_test_case () {
         printf 'CMD %s\n' "$1"
     }
 
-    unset -f shute_non_existing_command
+    unset -f shelter_non_existing_command
 
-    diff -du <(shute_run_test_class testclass shute_non_existing_command) - <<"EOF"
+    diff -du <(shelter_run_test_class testclass shelter_non_existing_command) - <<"EOF"
 EOF
 )
 
-test_shute_run_test_suite () (
+test_shelter_run_test_suite () (
 
     # Mock
-    test_shute_run_test_suite_suite_mock_1 () {
+    test_shelter_run_test_suite_suite_mock_1 () {
         cat <<EOF
 CMD cmd_1
 EXIT 0
@@ -212,10 +212,10 @@ TIME 1.5
 EOF
     }
 
-    diff -du <(shute_run_test_suite test_shute_run_test_suite_suite_mock_1) - <<"EOF"
+    diff -du <(shelter_run_test_suite test_shelter_run_test_suite_suite_mock_1) - <<"EOF"
 SUITE-ERRORS 1
 SUITE-FAILURES 0
-SUITE-NAME test_shute_run_test_suite_suite_mock_1
+SUITE-NAME test_shelter_run_test_suite_suite_mock_1
 SUITE-SKIPPED 0
 SUITE-TESTS 2
 SUITE-TIME 1.51
@@ -228,10 +228,10 @@ TIME 1.5
 EOF
 )
 
-test_shute_run_test_suites () (
+test_shelter_run_test_suites () (
 
     # Mock
-    test_shute_run_test_suites_suite_mock_1 () {
+    test_shelter_run_test_suites_suite_mock_1 () {
         cat <<EOF
 CMD cmd_1
 EXIT 0
@@ -242,7 +242,7 @@ TIME 1.5
 EOF
     }
 
-    test_shute_run_test_suites_suite_mock_2 () {
+    test_shelter_run_test_suites_suite_mock_2 () {
         cat <<EOF
 CMD cmd_1
 EXIT 0
@@ -254,7 +254,7 @@ SKIPPED cmd_4
 EOF
     }
 
-    diff -du <(shute_run_test_suites all test_shute_run_test_suites_suite_mock_) - <<"EOF"
+    diff -du <(shelter_run_test_suites all test_shelter_run_test_suites_suite_mock_) - <<"EOF"
 SUITES-ERRORS 1
 SUITES-FAILURES 0
 SUITES-NAME all
@@ -263,7 +263,7 @@ SUITES-TESTS 5
 SUITES-TIME 2.02
 SUITE-ERRORS 1
 SUITE-FAILURES 0
-SUITE-NAME test_shute_run_test_suites_suite_mock_1
+SUITE-NAME test_shelter_run_test_suites_suite_mock_1
 SUITE-SKIPPED 0
 SUITE-TESTS 2
 SUITE-TIME 1.51
@@ -275,7 +275,7 @@ EXIT 1
 TIME 1.5
 SUITE-ERRORS 0
 SUITE-FAILURES 0
-SUITE-NAME test_shute_run_test_suites_suite_mock_2
+SUITE-NAME test_shelter_run_test_suites_suite_mock_2
 SUITE-SKIPPED 1
 SUITE-TESTS 3
 SUITE-TIME 0.51
