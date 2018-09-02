@@ -142,8 +142,8 @@ shute_run_test_class () {
 ## @fn shute_run_test_suite ()
 ## @brief Run a command which runs multiple tests cases as a test suite
 ## @details The output is similar to running multiple test cases in
-## sequence with some suite data starting with the SUITE
-## keyword added at the top
+## sequence with some suite data starting with a SUITE-* set of
+## keywords added at the top
 ## @param cmd command. Will be passed to 'eval'
 ##
 ## Example (assumes there is a "suite_1" command which executes
@@ -179,7 +179,7 @@ shute_run_test_suite () {
     declare value
 
     {
-        printf '0 SUITE NAME %s\n' "$1"
+        printf '0 SUITE-NAME %s\n' "$1"
 
         while read -r key value; do
             case "$key" in
@@ -200,11 +200,11 @@ shute_run_test_suite () {
 
         done < <(unset shute_suite_tests shute_suite_errors shute_suite_failures shute_suite_skipped shute_suite_line shute_suite_time; eval "$1")
 
-        printf '0 SUITE TESTS %s\n' "$shute_suite_tests"
-        printf '0 SUITE ERRORS %s\n' "$shute_suite_errors"
-        printf '0 SUITE FAILURES %s\n' "$shute_suite_failures"
-        printf '0 SUITE SKIPPED %s\n' "$shute_suite_skipped"
-        printf '0 SUITE TIME %s\n' "$shute_suite_time"
+        printf '0 SUITE-TESTS %s\n' "$shute_suite_tests"
+        printf '0 SUITE-ERRORS %s\n' "$shute_suite_errors"
+        printf '0 SUITE-FAILURES %s\n' "$shute_suite_failures"
+        printf '0 SUITE-SKIPPED %s\n' "$shute_suite_skipped"
+        printf '0 SUITE-TIME %s\n' "$shute_suite_time"
 
     } | sort -n | sed -u 's/^[0-9]\+ //'
 }
