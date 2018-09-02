@@ -43,8 +43,8 @@ assert_stdout () {
 ## @details The command is executed with errexit and nounset enabled.
 ## STDOUT and STDERR are processed by separate threads, therefore might
 ## be slightly out of order in relation to each other. Ordering within a
-## single stream (STDOUT or STDERR) is guaranteed to be correct
-## The output is machine-readable
+## single stream (STDOUT or STDERR) is guaranteed to be correct.
+## The output is machine-readable.
 ## @param cmd command. Will be passed to 'eval'
 ##
 ## Example (number of variables reduced for clarity)
