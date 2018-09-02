@@ -137,4 +137,46 @@ shute_run_test_class () {
         printf 'CLASS %s\n' "$1"
     done < <(compgen -A function "$2")
 }
+
+
+shute_run_test_suite () {
+    declare -i shute_suite_tests=0
+    declare -i shute_suite_errors=0
+    declare -i shute_suite_failures=0
+    declare -i shute_suite_skipped=0
+    declare -i shute_suite_line=1
+    declare shute_suite_time='0.0'
+
+    declare key
+    declare value
+
+    {
+        printf '0 SUITE NAME %s\n' "$1"
+
+        while read -r key value; do
+            case "$key" in
+                CMD)
+                    shute_suite_tests+=1
+                    ;;
+                EXIT)
+                    [[ "$value" = '0' ]] || shute_suite_errors+=1
+                    ;;
+                TIME)
+                    shute_suite_time=$(bc <<< "$shute_suite_time + $value")
+                    ;;
+            esac
+
+            printf '%d %s %s\n' "$shute_suite_line" "$key" "$value"
+
+            shute_suite_line+=1
+
+        done < <(unset shute_suite_tests shute_suite_errors shute_suite_failures shute_suite_skipped shute_suite_line shute_suite_time; eval "$1")
+
+        printf '0 SUITE TESTS %s\n' "$shute_suite_tests"
+        printf '0 SUITE ERRORS %s\n' "$shute_suite_errors"
+        printf '0 SUITE FAILURES %s\n' "$shute_suite_failures"
+        printf '0 SUITE SKIPPED %s\n' "$shute_suite_skipped"
+        printf '0 SUITE TIME %s\n' "$shute_suite_time"
+
+    } | sort -n | sed -u 's/^[0-9]\+ //'
 }

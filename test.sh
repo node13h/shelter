@@ -191,6 +191,35 @@ test_shute_run_test_none () (
 EOF
 )
 
+test_shute_run_test_suite () (
+
+    # Mock
+    suite_1 () {
+        cat <<EOF
+CMD cmd_1
+EXIT 0
+TIME 0.01
+CMD cmd_2
+EXIT 1
+TIME 1.5
+EOF
+    }
+
+    diff -du <(shute_run_test_suite suite_1) - <<"EOF"
+SUITE ERRORS 1
+SUITE FAILURES 0
+SUITE NAME suite_1
+SUITE SKIPPED 0
+SUITE TESTS 2
+SUITE TIME 1.51
+CMD cmd_1
+EXIT 0
+TIME 0.01
+CMD cmd_2
+EXIT 1
+TIME 1.5
+EOF
+)
 
 # A very basic test runner to keep it simple while
 # testing the testing framework :)
