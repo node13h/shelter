@@ -108,7 +108,7 @@ shute_run_test_case () {
 
 
 ## @fn shute_run_test_class ()
-## @brief Run a pattern-based list of commands as test cases
+## @brief Run a pattern-based list of functions as test cases
 ## @details The output is similar to running shute_run_test_case
 ## multiple times with function names starting with the specified
 ## pattern. A line containing "CLASS $class_name" will be added
