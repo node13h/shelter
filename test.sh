@@ -133,6 +133,13 @@ test_shute_run_test_case_nounset () {
     shute_run_test_case 'unset foo; echo "$foo"' | grep '^EXIT 1$' >/dev/null
 }
 
+test_shute_run_test_case_skipped () {
+    SHUTE_SKIP_TEST_CASES=('sample_test_case_1_successful')
+    diff -du <(shute_run_test_case sample_test_case_1_successful) - <<"EOF"
+SKIPPED sample_test_case_1_successful
+EOF
+}
+
 test_shute_run_test_class_name () (
 
     # Mock
@@ -165,7 +172,7 @@ CLASS testclass
 EOF
 )
 
-test_shute_run_test_single () (
+test_shute_run_test_class_single () (
 
     # Mock
     shute_run_test_case () {
@@ -178,7 +185,7 @@ CLASS testclass
 EOF
 )
 
-test_shute_run_test_none () (
+test_shute_run_test_class_none () (
 
     # Mock
     shute_run_test_case () {
@@ -243,6 +250,7 @@ TIME 0.01
 CMD cmd_3
 EXIT 0
 TIME 0.5
+SKIPPED cmd_4
 EOF
     }
 
@@ -250,8 +258,8 @@ EOF
 SUITES-ERRORS 1
 SUITES-FAILURES 0
 SUITES-NAME all
-SUITES-SKIPPED 0
-SUITES-TESTS 4
+SUITES-SKIPPED 1
+SUITES-TESTS 5
 SUITES-TIME 2.02
 SUITE-ERRORS 1
 SUITE-FAILURES 0
@@ -268,8 +276,8 @@ TIME 1.5
 SUITE-ERRORS 0
 SUITE-FAILURES 0
 SUITE-NAME test_shute_run_test_suites_suite_mock_2
-SUITE-SKIPPED 0
-SUITE-TESTS 2
+SUITE-SKIPPED 1
+SUITE-TESTS 3
 SUITE-TIME 0.51
 CMD cmd_1
 EXIT 0
@@ -277,6 +285,7 @@ TIME 0.01
 CMD cmd_3
 EXIT 0
 TIME 0.5
+SKIPPED cmd_4
 EOF
 )
 

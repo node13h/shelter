@@ -10,6 +10,13 @@
 
 set -euo pipefail
 
+## @var SHUTE_SKIP_TEST_CASES
+## @brief A list of test case commands to skip
+## @details When set before executing test suites allows to skip
+## certain test cases
+declare -ag SHUTE_SKIP_TEST_CASES=()
+
+
 ## @fn assert_stdout ()
 ## @brief Assert command's STDOUT output matches the expected one
 ## @details In case STDOUT output does not match the expected -
@@ -64,6 +71,16 @@ assert_stdout () {
 ## STDOUT 3 Hi again
 ## @endcode
 shute_run_test_case () {
+    if [[ "${#SHUTE_SKIP_TEST_CASES[@]}" -gt 0 ]]; then
+        declare cmd
+        for cmd in "${SHUTE_SKIP_TEST_CASES[@]}"; do
+            if [[ "$cmd" = "$1" ]]; then
+                printf 'SKIPPED %s\n' "$1"
+                return 0
+            fi
+        done
+    fi
+
     printf 'CMD %s\n' "$1"
 
     declare var
@@ -183,6 +200,10 @@ shute_run_test_suite () {
             case "$key" in
                 CMD)
                     shute_suite_tests+=1
+                    ;;
+                SKIPPED)
+                    shute_suite_tests+=1
+                    shute_suite_skipped+=1
                     ;;
                 EXIT)
                     [[ "$value" = '0' ]] || shute_suite_errors+=1
