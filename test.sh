@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# MIT license
+# Copyright 2018 Sergej Alikov <sergej.alikov@gmail.com>
+
 set -euo pipefail
 
 declare -g PROG_DIR

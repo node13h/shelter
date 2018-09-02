@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # MIT license
-# Copyright 2012 Sergej Alikov <sergej.alikov@gmail.com>
+# Copyright 2018 Sergej Alikov <sergej.alikov@gmail.com>
 
 ## @file
 ## @author Sergej Alikov <sergej.alikov@gmail.com>
