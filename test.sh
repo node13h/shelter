@@ -194,7 +194,7 @@ EOF
 test_shute_run_test_suite () (
 
     # Mock
-    suite_1 () {
+    test_shute_run_test_suite_suite_mock_1 () {
         cat <<EOF
 CMD cmd_1
 EXIT 0
@@ -205,10 +205,10 @@ TIME 1.5
 EOF
     }
 
-    diff -du <(shute_run_test_suite suite_1) - <<"EOF"
+    diff -du <(shute_run_test_suite test_shute_run_test_suite_suite_mock_1) - <<"EOF"
 SUITE-ERRORS 1
 SUITE-FAILURES 0
-SUITE-NAME suite_1
+SUITE-NAME test_shute_run_test_suite_suite_mock_1
 SUITE-SKIPPED 0
 SUITE-TESTS 2
 SUITE-TIME 1.51
