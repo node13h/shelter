@@ -208,3 +208,59 @@ shute_run_test_suite () {
 
     } | sort -n | sed -u 's/^[0-9]\+ //'
 }
+
+
+
+shute_run_test_suites () {
+    declare -i shute_suites_tests=0
+    declare -i shute_suites_errors=0
+    declare -i shute_suites_failures=0
+    declare -i shute_suites_skipped=0
+    declare -i shute_suites_line=1
+    declare shute_suites_time='0.0'
+
+    declare fn
+
+    declare key
+    declare value
+
+    {
+        printf '0 SUITES-NAME %s\n' "$1"
+
+        while read -r fn; do
+
+            while read -r key value; do
+                case "$key" in
+                    SUITE-ERRORS)
+                        shute_suites_errors+="$value"
+                        ;;
+                    SUITE-FAILURES)
+                        shute_suites_failures+="$value"
+                        ;;
+                    SUITE-SKIPPED)
+                        shute_suites_skipped+="$value"
+                        ;;
+                    SUITE-TESTS)
+                        shute_suites_tests+="$value"
+                        ;;
+                    SUITE-TIME)
+                        shute_suites_time=$(bc <<< "$shute_suites_time + $value" | sed 's/^\./0./')
+                        ;;
+                esac
+
+                printf '%d %s %s\n' "$shute_suites_line" "$key" "$value"
+
+                shute_suites_line+=1
+
+            done < <(unset shute_suites_tests shute_suites_errors shute_suites_failures shute_suites_skipped shute_suites_line shute_suites_time; shute_run_test_suite "$fn")
+
+        done < <(compgen -A function "$2")
+
+        printf '0 SUITES-TESTS %s\n' "$shute_suites_tests"
+        printf '0 SUITES-ERRORS %s\n' "$shute_suites_errors"
+        printf '0 SUITES-FAILURES %s\n' "$shute_suites_failures"
+        printf '0 SUITES-SKIPPED %s\n' "$shute_suites_skipped"
+        printf '0 SUITES-TIME %s\n' "$shute_suites_time"
+
+    } > >(sort -n | sed -u 's/^[0-9]\+ //')
+}

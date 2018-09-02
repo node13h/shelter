@@ -221,6 +221,65 @@ TIME 1.5
 EOF
 )
 
+test_shute_run_test_suites () (
+
+    # Mock
+    test_shute_run_test_suites_suite_mock_1 () {
+        cat <<EOF
+CMD cmd_1
+EXIT 0
+TIME 0.01
+CMD cmd_2
+EXIT 1
+TIME 1.5
+EOF
+    }
+
+    test_shute_run_test_suites_suite_mock_2 () {
+        cat <<EOF
+CMD cmd_1
+EXIT 0
+TIME 0.01
+CMD cmd_3
+EXIT 0
+TIME 0.5
+EOF
+    }
+
+    diff -du <(shute_run_test_suites all test_shute_run_test_suites_suite_mock_) - <<"EOF"
+SUITES-ERRORS 1
+SUITES-FAILURES 0
+SUITES-NAME all
+SUITES-SKIPPED 0
+SUITES-TESTS 4
+SUITES-TIME 2.02
+SUITE-ERRORS 1
+SUITE-FAILURES 0
+SUITE-NAME test_shute_run_test_suites_suite_mock_1
+SUITE-SKIPPED 0
+SUITE-TESTS 2
+SUITE-TIME 1.51
+CMD cmd_1
+EXIT 0
+TIME 0.01
+CMD cmd_2
+EXIT 1
+TIME 1.5
+SUITE-ERRORS 0
+SUITE-FAILURES 0
+SUITE-NAME test_shute_run_test_suites_suite_mock_2
+SUITE-SKIPPED 0
+SUITE-TESTS 2
+SUITE-TIME 0.51
+CMD cmd_1
+EXIT 0
+TIME 0.01
+CMD cmd_3
+EXIT 0
+TIME 0.5
+EOF
+)
+
 # A very basic test runner to keep it simple while
 # testing the testing framework :)
 
