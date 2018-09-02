@@ -39,7 +39,7 @@ assert_stdout () {
 
 
 ## @fn shute_run_test_case ()
-## @brief Run command in an isolated environment and return an annotated output
+## @brief Run a command in an isolated environment and return an annotated output
 ## @details The command is executed with errexit and nounset enabled.
 ## STDOUT and STDERR are processed by separate threads, therefore might
 ## be slightly out of order in relation to each other. Ordering within a
