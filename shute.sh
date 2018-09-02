@@ -80,8 +80,8 @@ shute_run_test_case () {
         # Backup shell options. errexit is propagated to process
         # substitutions, therefore no special handling is needed
 
-        declare -a SHUTE_SHELL_OPTIONS
-        readarray -t SHUTE_SHELL_OPTIONS < <(shopt -po)
+        declare -a shute_shopt_backup
+        readarray -t shute_shopt_backup < <(shopt -po)
 
         set +e
 
@@ -89,13 +89,15 @@ shute_run_test_case () {
         # user to perform sorting (sort -V) to split STDOUT and STDERR into
         # separate blocks (preserving the correct order within the block)
         # and reassemble back into a single block later (sort -V -k 2).
-        time eval '(set -eu; unset TIMEFORMAT SHUTE_SHELL_OPTIONS; eval "$1" 2> >(sed -u -e "s/^/STDERR /") > >(sed -u -e "s/^/STDOUT /"))' > >(grep -n '.' | sed -u 's/^\([0-9]\+\):\(STDOUT\|STDERR\) /\2 \1 /')
+        time eval '(set -eu; unset TIMEFORMAT shute_shopt_backup; eval "$1" 2> >(sed -u -e "s/^/STDERR /") > >(sed -u -e "s/^/STDOUT /"))' \
+            | grep -n '.' \
+            | sed -u 's/^\([0-9]\+\):\(STDOUT\|STDERR\) /\2 \1 /'
 
         declare rc="$?"
 
         # Restore shell options
         declare cmd
-        for cmd in "${SHUTE_SHELL_OPTIONS[@]}"; do
+        for cmd in "${shute_shopt_backup[@]}"; do
             eval "$cmd"
         done
 
