@@ -190,7 +190,7 @@ shute_run_test_suite () {
                     [[ "$value" = '0' ]] || shute_suite_errors+=1
                     ;;
                 TIME)
-                    shute_suite_time=$(bc <<< "$shute_suite_time + $value")
+                    shute_suite_time=$(bc <<< "$shute_suite_time + $value" | sed 's/^\./0./')
                     ;;
             esac
 
