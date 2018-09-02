@@ -208,7 +208,53 @@ shute_run_test_suite () {
 }
 
 
-
+## @fn shute_run_test_suites ()
+## @brief Run a pattern-based list of functions as test suites
+## @details Pass every function name starting with a specified prefix to
+## the shute_run_test_suite command. Aggregated suite data starting
+## with a SUITES-* set of keywords will be added at the top
+## @param name a name of the collection
+## @param fn_prefix function prefix. All functions starting with
+## this prefix (in the current scope) will be executed.
+##
+## Example (assumes there is a "suite_1" command which executes
+## "shute_run_test_case test_1" and "shute_run_test_case test_2" commands,
+## and a "suite_2" command which executes "shute_run_test_case test_3"
+## command. Outut reduced for clarity)
+##
+## @code{.sh}
+## $ shute_run_test_suites 'A collection' suite_
+## SUITES-ERRORS 1
+## SUITES-FAILURES 0
+## SUITES-NAME A collection
+## SUITES-SKIPPED 0
+## SUITES-TESTS 3
+## SUITES-TIME 1.5
+## SUITE-ERRORS 1
+## SUITE-FAILURES 0
+## SUITE-NAME suite_1
+## SUITE-SKIPPED 0
+## SUITE-TESTS 2
+## SUITE-TIME 1
+## CMD cmd_1
+## EXIT 0
+## TIME 0.4
+## ...
+## CMD cmd_2
+## EXIT 1
+## TIME 0.6
+## ...
+## SUITE-ERRORS 0
+## SUITE-FAILURES 0
+## SUITE-NAME suite_2
+## SUITE-SKIPPED 0
+## SUITE-TESTS 2
+## SUITE-TIME 0.5
+## CMD cmd_3
+## EXIT 0
+## TIME 0.5
+## ...
+## @endcode
 shute_run_test_suites () {
     declare -i shute_suites_tests=0
     declare -i shute_suites_errors=0
