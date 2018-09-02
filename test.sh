@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# MIT license
+# Copyright 2018 Sergej Alikov <sergej.alikov@gmail.com>
+
 set -euo pipefail
 
 declare -g PROG_DIR
@@ -53,8 +56,240 @@ test_assert_stdout_stdin_success () {
     assert_stdout 'echo This is a test' <<< 'This is a test'
 }
 
+sample_test_case_1_successful () {
+    echo 'Hello'
+    echo 'World' >&2
+    echo "How's life?"
+    echo 'Hello?' >&2
+}
 
-# A very basic test runner tokeep it simple while
+sample_test_case_1_failing () {
+    echo 'Hello'
+    echo 'World' >&2
+
+    false
+
+    echo 'Should not see me'
+    echo 'Me either' >&2
+}
+
+_predictable_test_case_output () {
+    # 1. replace TIME value with static 0.01
+    # 2. natural sort to split STDOUT and STDERR into separate blocks (sequence numbers will ensure the correct ordering within a block)
+    # 3. remove sequence numbers, which may differ between runs due to the multithreaded processing of STDOUT and STDERR
+    sed 's/^TIME [0-9]*\.[0-9]\+$/TIME 0.01/' | sort -V | sed 's/\(STDOUT\|STDERR\) [0-9]\+/\1/'
+}
+
+_exclude_env () {
+    grep -v '^ENV '
+}
+
+test_shute_run_test_case_successful_env () {
+    # shellcheck disable=SC2034
+    declare shute_test_variable=hi
+
+    shute_run_test_case sample_test_case_1_successful | grep '^ENV shute_test_variable declare\\ --\\ shute_test_variable=\\"hi\\"$' >/dev/null
+}
+
+test_shute_run_test_case_successful_env_missing () {
+    unset shute_test_variable
+
+    shute_run_test_case sample_test_case_1_successful | { ! grep '^ENV shute_test_variable declare\\ --\\ shute_test_variable=\\"hi\\"$' >/dev/null; }
+}
+
+test_shute_run_test_case_successful () {
+    diff -du <(shute_run_test_case sample_test_case_1_successful | _exclude_env | _predictable_test_case_output) - <<"EOF"
+CMD sample_test_case_1_successful
+EXIT 0
+STDERR World
+STDERR Hello?
+STDOUT Hello
+STDOUT How's life?
+TIME 0.01
+EOF
+}
+
+test_shute_run_test_case_failing () {
+    diff -du <(shute_run_test_case sample_test_case_1_failing | _exclude_env | _predictable_test_case_output) - <<"EOF"
+CMD sample_test_case_1_failing
+EXIT 1
+STDERR World
+STDOUT Hello
+TIME 0.01
+EOF
+}
+
+test_shute_run_test_case_eval () {
+    diff -du <(shute_run_test_case 'echo "Hello World"' | _exclude_env | _predictable_test_case_output) - <<"EOF"
+CMD echo "Hello World"
+EXIT 0
+STDOUT Hello World
+TIME 0.01
+EOF
+}
+
+test_shute_run_test_case_nounset () {
+    # shellcheck disable=SC2016
+    shute_run_test_case 'unset foo; echo "$foo"' | grep '^EXIT 1$' >/dev/null
+}
+
+test_shute_run_test_case_skipped () {
+    SHUTE_SKIP_TEST_CASES=('sample_test_case_1_successful')
+    diff -du <(shute_run_test_case sample_test_case_1_successful) - <<"EOF"
+SKIPPED sample_test_case_1_successful
+EOF
+}
+
+test_shute_run_test_class_name () (
+
+    # Mock
+    shute_run_test_case () {
+        printf 'CMD %s\n' "$1"
+        cat <<"EOF"
+ENV RANDOM declare\ -i\ RANDOM=\"31895\"
+ENV SECONDS declare\ -i\ SECONDS=\"1\"
+EXIT 0
+STDOUT Hello World
+TIME 0.01
+EOF
+    }
+
+    diff -du <(shute_run_test_class testclass sample_test_case_1_) - <<"EOF"
+CMD sample_test_case_1_failing
+ENV RANDOM declare\ -i\ RANDOM=\"31895\"
+ENV SECONDS declare\ -i\ SECONDS=\"1\"
+EXIT 0
+STDOUT Hello World
+TIME 0.01
+CLASS testclass
+CMD sample_test_case_1_successful
+ENV RANDOM declare\ -i\ RANDOM=\"31895\"
+ENV SECONDS declare\ -i\ SECONDS=\"1\"
+EXIT 0
+STDOUT Hello World
+TIME 0.01
+CLASS testclass
+EOF
+)
+
+test_shute_run_test_class_single () (
+
+    # Mock
+    shute_run_test_case () {
+        printf 'CMD %s\n' "$1"
+    }
+
+    diff -du <(shute_run_test_class testclass sample_test_case_1_succ) - <<"EOF"
+CMD sample_test_case_1_successful
+CLASS testclass
+EOF
+)
+
+test_shute_run_test_class_none () (
+
+    # Mock
+    shute_run_test_case () {
+        printf 'CMD %s\n' "$1"
+    }
+
+    unset -f shute_non_existing_command
+
+    diff -du <(shute_run_test_class testclass shute_non_existing_command) - <<"EOF"
+EOF
+)
+
+test_shute_run_test_suite () (
+
+    # Mock
+    test_shute_run_test_suite_suite_mock_1 () {
+        cat <<EOF
+CMD cmd_1
+EXIT 0
+TIME 0.01
+CMD cmd_2
+EXIT 1
+TIME 1.5
+EOF
+    }
+
+    diff -du <(shute_run_test_suite test_shute_run_test_suite_suite_mock_1) - <<"EOF"
+SUITE-ERRORS 1
+SUITE-FAILURES 0
+SUITE-NAME test_shute_run_test_suite_suite_mock_1
+SUITE-SKIPPED 0
+SUITE-TESTS 2
+SUITE-TIME 1.51
+CMD cmd_1
+EXIT 0
+TIME 0.01
+CMD cmd_2
+EXIT 1
+TIME 1.5
+EOF
+)
+
+test_shute_run_test_suites () (
+
+    # Mock
+    test_shute_run_test_suites_suite_mock_1 () {
+        cat <<EOF
+CMD cmd_1
+EXIT 0
+TIME 0.01
+CMD cmd_2
+EXIT 1
+TIME 1.5
+EOF
+    }
+
+    test_shute_run_test_suites_suite_mock_2 () {
+        cat <<EOF
+CMD cmd_1
+EXIT 0
+TIME 0.01
+CMD cmd_3
+EXIT 0
+TIME 0.5
+SKIPPED cmd_4
+EOF
+    }
+
+    diff -du <(shute_run_test_suites all test_shute_run_test_suites_suite_mock_) - <<"EOF"
+SUITES-ERRORS 1
+SUITES-FAILURES 0
+SUITES-NAME all
+SUITES-SKIPPED 1
+SUITES-TESTS 5
+SUITES-TIME 2.02
+SUITE-ERRORS 1
+SUITE-FAILURES 0
+SUITE-NAME test_shute_run_test_suites_suite_mock_1
+SUITE-SKIPPED 0
+SUITE-TESTS 2
+SUITE-TIME 1.51
+CMD cmd_1
+EXIT 0
+TIME 0.01
+CMD cmd_2
+EXIT 1
+TIME 1.5
+SUITE-ERRORS 0
+SUITE-FAILURES 0
+SUITE-NAME test_shute_run_test_suites_suite_mock_2
+SUITE-SKIPPED 1
+SUITE-TESTS 3
+SUITE-TIME 0.51
+CMD cmd_1
+EXIT 0
+TIME 0.01
+CMD cmd_3
+EXIT 0
+TIME 0.5
+SKIPPED cmd_4
+EOF
+)
+
+# A very basic test runner to keep it simple while
 # testing the testing framework :)
 
 declare fn rc status colour
