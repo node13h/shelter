@@ -194,7 +194,7 @@ shelter_run_test_suite () {
     declare value
 
     {
-        printf '0 SUITE-NAME %s\n' "$1"
+        printf '0 SUITE_NAME %s\n' "$1"
 
         while read -r key value; do
             case "$key" in
@@ -219,11 +219,11 @@ shelter_run_test_suite () {
 
         done < <(unset shelter_suite_tests shelter_suite_errors shelter_suite_failures shelter_suite_skipped shelter_suite_line shelter_suite_time; eval "$1")
 
-        printf '0 SUITE-TESTS %s\n' "$shelter_suite_tests"
-        printf '0 SUITE-ERRORS %s\n' "$shelter_suite_errors"
-        printf '0 SUITE-FAILURES %s\n' "$shelter_suite_failures"
-        printf '0 SUITE-SKIPPED %s\n' "$shelter_suite_skipped"
-        printf '0 SUITE-TIME %s\n' "$shelter_suite_time"
+        printf '0 SUITE_TESTS %s\n' "$shelter_suite_tests"
+        printf '0 SUITE_ERRORS %s\n' "$shelter_suite_errors"
+        printf '0 SUITE_FAILURES %s\n' "$shelter_suite_failures"
+        printf '0 SUITE_SKIPPED %s\n' "$shelter_suite_skipped"
+        printf '0 SUITE_TIME %s\n' "$shelter_suite_time"
 
     } | sort -n | sed -u 's/^[0-9]\+ //'
 }
@@ -290,25 +290,25 @@ shelter_run_test_suites () {
     declare value
 
     {
-        printf '0 SUITES-NAME %s\n' "$1"
+        printf '0 SUITES_NAME %s\n' "$1"
 
         while read -r fn; do
 
             while read -r key value; do
                 case "$key" in
-                    SUITE-ERRORS)
+                    SUITE_ERRORS)
                         shelter_suites_errors+="$value"
                         ;;
-                    SUITE-FAILURES)
+                    SUITE_FAILURES)
                         shelter_suites_failures+="$value"
                         ;;
-                    SUITE-SKIPPED)
+                    SUITE_SKIPPED)
                         shelter_suites_skipped+="$value"
                         ;;
-                    SUITE-TESTS)
+                    SUITE_TESTS)
                         shelter_suites_tests+="$value"
                         ;;
-                    SUITE-TIME)
+                    SUITE_TIME)
                         shelter_suites_time=$(bc <<< "$shelter_suites_time + $value" | sed 's/^\./0./')
                         ;;
                 esac
@@ -321,11 +321,11 @@ shelter_run_test_suites () {
 
         done < <(compgen -A function "$2")
 
-        printf '0 SUITES-TESTS %s\n' "$shelter_suites_tests"
-        printf '0 SUITES-ERRORS %s\n' "$shelter_suites_errors"
-        printf '0 SUITES-FAILURES %s\n' "$shelter_suites_failures"
-        printf '0 SUITES-SKIPPED %s\n' "$shelter_suites_skipped"
-        printf '0 SUITES-TIME %s\n' "$shelter_suites_time"
+        printf '0 SUITES_TESTS %s\n' "$shelter_suites_tests"
+        printf '0 SUITES_ERRORS %s\n' "$shelter_suites_errors"
+        printf '0 SUITES_FAILURES %s\n' "$shelter_suites_failures"
+        printf '0 SUITES_SKIPPED %s\n' "$shelter_suites_skipped"
+        printf '0 SUITES_TIME %s\n' "$shelter_suites_time"
 
     } | sort -n | sed -u 's/^[0-9]\+ //'
 }

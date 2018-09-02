@@ -213,12 +213,12 @@ EOF
     }
 
     diff -du <(shelter_run_test_suite test_shelter_run_test_suite_suite_mock_1) - <<"EOF"
-SUITE-ERRORS 1
-SUITE-FAILURES 0
-SUITE-NAME test_shelter_run_test_suite_suite_mock_1
-SUITE-SKIPPED 0
-SUITE-TESTS 2
-SUITE-TIME 1.51
+SUITE_ERRORS 1
+SUITE_FAILURES 0
+SUITE_NAME test_shelter_run_test_suite_suite_mock_1
+SUITE_SKIPPED 0
+SUITE_TESTS 2
+SUITE_TIME 1.51
 CMD cmd_1
 EXIT 0
 TIME 0.01
@@ -255,30 +255,30 @@ EOF
     }
 
     diff -du <(shelter_run_test_suites all test_shelter_run_test_suites_suite_mock_) - <<"EOF"
-SUITES-ERRORS 1
-SUITES-FAILURES 0
-SUITES-NAME all
-SUITES-SKIPPED 1
-SUITES-TESTS 5
-SUITES-TIME 2.02
-SUITE-ERRORS 1
-SUITE-FAILURES 0
-SUITE-NAME test_shelter_run_test_suites_suite_mock_1
-SUITE-SKIPPED 0
-SUITE-TESTS 2
-SUITE-TIME 1.51
+SUITES_ERRORS 1
+SUITES_FAILURES 0
+SUITES_NAME all
+SUITES_SKIPPED 1
+SUITES_TESTS 5
+SUITES_TIME 2.02
+SUITE_ERRORS 1
+SUITE_FAILURES 0
+SUITE_NAME test_shelter_run_test_suites_suite_mock_1
+SUITE_SKIPPED 0
+SUITE_TESTS 2
+SUITE_TIME 1.51
 CMD cmd_1
 EXIT 0
 TIME 0.01
 CMD cmd_2
 EXIT 1
 TIME 1.5
-SUITE-ERRORS 0
-SUITE-FAILURES 0
-SUITE-NAME test_shelter_run_test_suites_suite_mock_2
-SUITE-SKIPPED 1
-SUITE-TESTS 3
-SUITE-TIME 0.51
+SUITE_ERRORS 0
+SUITE_FAILURES 0
+SUITE_NAME test_shelter_run_test_suites_suite_mock_2
+SUITE_SKIPPED 1
+SUITE_TESTS 3
+SUITE_TIME 0.51
 CMD cmd_1
 EXIT 0
 TIME 0.01
