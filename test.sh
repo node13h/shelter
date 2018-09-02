@@ -148,7 +148,6 @@ EOF
     }
 
     diff -du <(shute_run_test_class testclass sample_test_case_1_) - <<"EOF"
-CLASS testclass
 CMD sample_test_case_1_failing
 ENV RANDOM declare\ -i\ RANDOM=\"31895\"
 ENV SECONDS declare\ -i\ SECONDS=\"1\"
@@ -162,6 +161,7 @@ ENV SECONDS declare\ -i\ SECONDS=\"1\"
 EXIT 0
 STDOUT Hello World
 TIME 0.01
+CLASS testclass
 EOF
 )
 
@@ -173,8 +173,8 @@ test_shute_run_test_single () (
     }
 
     diff -du <(shute_run_test_class testclass sample_test_case_1_succ) - <<"EOF"
-CLASS testclass
 CMD sample_test_case_1_successful
+CLASS testclass
 EOF
 )
 
