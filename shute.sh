@@ -109,10 +109,9 @@ shute_run_test_case () {
 
 ## @fn shute_run_test_class ()
 ## @brief Run a pattern-based list of functions as test cases
-## @details The output is similar to running shute_run_test_case
-## multiple times with function names starting with the specified
-## pattern. A line containing "CLASS $class_name" will be added
-## to the end of every test case output block
+## @details Pass every function name starting with a specified prefix to
+## the shute_run_test_case command. A line containing "CLASS $class_name"
+## will be added to the end of every test case output block
 ## @param class_name class name
 ## @param fn_prefix function prefix. All functions starting with
 ## this prefix (in the current scope) will be executed.
@@ -141,9 +140,8 @@ shute_run_test_class () {
 
 ## @fn shute_run_test_suite ()
 ## @brief Run a command which runs multiple tests cases as a test suite
-## @details The output is similar to running multiple test cases in
-## sequence with some suite data starting with a SUITE-* set of
-## keywords added at the top
+## @details Suite data starting with a SUITE-* set of
+## keywords will be added at the top
 ## @param cmd command. Will be passed to 'eval'
 ##
 ## Example (assumes there is a "suite_1" command which executes
