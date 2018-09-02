@@ -260,5 +260,5 @@ shute_run_test_suites () {
         printf '0 SUITES-SKIPPED %s\n' "$shute_suites_skipped"
         printf '0 SUITES-TIME %s\n' "$shute_suites_time"
 
-    } > >(sort -n | sed -u 's/^[0-9]\+ //')
+    } | sort -n | sed -u 's/^[0-9]\+ //'
 }
