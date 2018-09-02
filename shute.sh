@@ -117,15 +117,15 @@ shute_run_test_case () {
 ## @param fn_prefix function prefix. All functions starting with
 ## this prefix (in the current scope) will be executed.
 ##
-## Example (assumes there are test_a and test_b functions.
+## Example (assumes there are "test_1" and "test_2" functions.
 ## Outut reduced for clarity)
 ##
 ## @code{.sh}
 ## $ shute_run_test_class testclass test_
-## CMD test_a
+## CMD test_1
 ## ...
 ## CLASS testclass
-## CMD test_b
+## CMD test_2
 ## ...
 ## CLASS testclass
 ## @endcode
