@@ -130,6 +130,65 @@ test_shute_run_test_case_nounset () {
     shute_run_test_case 'unset foo; echo "$foo"' | grep '^EXIT 1$' >/dev/null
 }
 
+test_shute_run_test_class_name () (
+
+    # Mock
+    shute_run_test_case () {
+        printf 'CMD %s\n' "$1"
+        cat <<"EOF"
+ENV RANDOM declare\ -i\ RANDOM=\"31895\"
+ENV SECONDS declare\ -i\ SECONDS=\"1\"
+EXIT 0
+STDOUT Hello World
+TIME 0.01
+EOF
+    }
+
+    diff -du <(shute_run_test_class testclass sample_test_case_1_) - <<"EOF"
+CLASS testclass
+CMD sample_test_case_1_failing
+ENV RANDOM declare\ -i\ RANDOM=\"31895\"
+ENV SECONDS declare\ -i\ SECONDS=\"1\"
+EXIT 0
+STDOUT Hello World
+TIME 0.01
+CLASS testclass
+CMD sample_test_case_1_successful
+ENV RANDOM declare\ -i\ RANDOM=\"31895\"
+ENV SECONDS declare\ -i\ SECONDS=\"1\"
+EXIT 0
+STDOUT Hello World
+TIME 0.01
+EOF
+)
+
+test_shute_run_test_single () (
+
+    # Mock
+    shute_run_test_case () {
+        printf 'CMD %s\n' "$1"
+    }
+
+    diff -du <(shute_run_test_class testclass sample_test_case_1_succ) - <<"EOF"
+CLASS testclass
+CMD sample_test_case_1_successful
+EOF
+)
+
+test_shute_run_test_none () (
+
+    # Mock
+    shute_run_test_case () {
+        printf 'CMD %s\n' "$1"
+    }
+
+    unset -f shute_non_existing_command
+
+    diff -du <(shute_run_test_class testclass shute_non_existing_command) - <<"EOF"
+EOF
+)
+
+
 # A very basic test runner to keep it simple while
 # testing the testing framework :)
 

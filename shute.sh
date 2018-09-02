@@ -103,3 +103,38 @@ shute_run_test_case () {
 
     printf 'EXIT %s\n' "$rc"
 }
+
+
+## @fn shute_run_test_class ()
+## @brief Run a pattern-based list of commands as test cases
+## @details The output is similar to running shute_run_test_case
+## multiple times with function names starting with the specified
+## pattern. A line containing  CLASS $class_name will start every
+## test case output block
+## @param class_name class name
+## @param fn_prefix function prefix. All functions starting with
+## this prefix (in the current scope) will be executed.
+##
+## Example (assumes there are test_a and test_b functions.
+## Outut reduced for clarity)
+##
+## @code{.sh}
+## $ shute_run_test_class testclass test_
+## CLASS testclass
+## CMD test_a
+## ...
+## CLASS testclass
+## CMD test_b
+## ...
+## @endcode
+shute_run_test_class () {
+    declare class_name="$1"
+    declare fn_prefix="$2"
+
+    declare fn
+
+    while read -r fn; do
+        printf 'CLASS %s\n' "$class_name"
+        shute_run_test_case "$fn"
+    done < <(compgen -A function "$fn_prefix")
+}
