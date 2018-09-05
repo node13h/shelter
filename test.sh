@@ -11,6 +11,9 @@ PROG_DIR=$(dirname "${BASH_SOURCE[@]}")
 # shellcheck source=shelter.sh
 source "${PROG_DIR%/}/shelter.sh"
 
+test_assert_fd () {
+    [[ -n "${SHELTER_ASSERT_FD:-}" ]]
+}
 
 test_assert_stdout_success () {
     assert_stdout 'printf "%s\\n" This is a multiline test' <(

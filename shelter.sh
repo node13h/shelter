@@ -16,6 +16,10 @@ set -euo pipefail
 ## certain test cases
 declare -ag SHELTER_SKIP_TEST_CASES=()
 
+# shellcheck disable=SC2034
+# This variable is used internally by the assert_ functions
+# It provides a side channel for assertion messages
+[[ -n "${SHELTER_ASSERT_FD:-}" ]] || exec {SHELTER_ASSERT_FD}>&2
 
 ## @fn assert_stdout ()
 ## @brief Assert command's STDOUT output matches the expected one
