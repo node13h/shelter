@@ -44,8 +44,16 @@ declare -ag SHELTER_SKIP_TEST_CASES=()
 assert_stdout () {
     declare cmd="$1"
     declare expected_file="${2}"
+    declare msg="${3:-STDOUT of \"${cmd}\" does not match the contents of \"${expected_file}\"}"
+    declare rc
 
-    diff -du <(eval "$cmd") "$expected_file" >&2
+    if diff -du <(eval "$cmd") "$expected_file" >&2; then
+        return 0
+    else
+        rc="$?"
+        printf '%s %s\n' "${FUNCNAME[0]}" "$msg" >&"${SHELTER_ASSERT_FD}"
+        return "$rc"
+    fi
 }
 
 

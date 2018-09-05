@@ -15,6 +15,11 @@ test_assert_fd () {
     [[ -n "${SHELTER_ASSERT_FD:-}" ]]
 }
 
+_mute_assert_fd () {
+    # shellcheck disable=SC2034
+    "$@" {SHELTER_ASSERT_FD}>/dev/null
+}
+
 test_assert_stdout_success () {
     assert_stdout 'printf "%s\\n" This is a multiline test' <(
         cat <<EOF
@@ -36,7 +41,7 @@ test_assert_stdout_success_stderr_silent () {
 }
 
 test_assert_stdout_fail () {
-    ! assert_stdout 'printf "%s\\n" This is a multiline test' <(
+    ! _mute_assert_fd assert_stdout 'printf "%s\\n" This is a multiline test' <(
         cat <<EOF
 This
 is
@@ -48,11 +53,11 @@ EOF
 }
 
 test_assert_stdout_fail_stdout_silent () {
-    [[ -z "$(! assert_stdout 'echo TEST' <(echo FAIL) 2>/dev/null)" ]]
+    [[ -z "$(_mute_assert_fd assert_stdout 'echo TEST' <(echo FAIL) 2>/dev/null)" ]]
 }
 
 test_assert_stdout_fail_stderr_diff () {
-    [[ -n "$(! assert_stdout 'echo TEST' <(echo FAIL) 2>&1 >/dev/null)" ]]
+    [[ -n "$(_mute_assert_fd assert_stdout 'echo TEST' <(echo FAIL) 2>&1 >/dev/null)" ]]
 }
 
 test_assert_stdout_stdin_success () {
