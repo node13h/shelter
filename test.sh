@@ -49,15 +49,15 @@ a
 multiline
 fail
 EOF
-    ) 2>/dev/null
+    ) >/dev/null
 }
 
-test_assert_stdout_fail_stdout_silent () {
-    [[ -z "$(_mute_assert_fd assert_stdout 'echo TEST' <(echo FAIL) 2>/dev/null)" ]]
+test_assert_stdout_fail_stdout_diff () {
+    [[ -n "$(_mute_assert_fd assert_stdout 'echo TEST' <(echo FAIL) 2>/dev/null)" ]]
 }
 
-test_assert_stdout_fail_stderr_diff () {
-    [[ -n "$(_mute_assert_fd assert_stdout 'echo TEST' <(echo FAIL) 2>&1 >/dev/null)" ]]
+test_assert_stdout_fail_stderr_silent () {
+    [[ -z "$(_mute_assert_fd assert_stdout 'echo TEST' <(echo FAIL) 2>&1 >/dev/null)" ]]
 }
 
 test_assert_stdout_stdin_success () {

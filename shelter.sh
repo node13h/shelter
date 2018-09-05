@@ -47,7 +47,7 @@ assert_stdout () {
     declare msg="${3:-STDOUT of \"${cmd}\" does not match the contents of \"${expected_file}\"}"
     declare rc
 
-    if diff -du <(eval "$cmd") "$expected_file" >&2; then
+    if diff -du <(eval "$cmd") "$expected_file"; then
         return 0
     else
         rc="$?"
