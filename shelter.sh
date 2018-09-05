@@ -39,11 +39,11 @@ declare -ag SHELTER_SKIP_TEST_CASES=()
 ##
 ## Using STDIN to pass the expected output
 ## @code{.sh}
-## assert_stdout 'bc << 1+1' <<< 2
+## assert_stdout 'bc << 1+1' '-' <<< 2
 ## @endcode
 assert_stdout () {
     declare cmd="$1"
-    declare expected_file="${2:--}"
+    declare expected_file="${2}"
 
     diff -du <(eval "$cmd") "$expected_file" >&2
 }

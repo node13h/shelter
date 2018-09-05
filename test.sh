@@ -56,7 +56,7 @@ test_assert_stdout_fail_stderr_diff () {
 }
 
 test_assert_stdout_stdin_success () {
-    assert_stdout 'echo This is a test' <<< 'This is a test'
+    assert_stdout 'echo This is a test' - <<< 'This is a test'
 }
 
 sample_test_case_1_successful () {
