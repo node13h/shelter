@@ -131,7 +131,7 @@ shelter_run_test_case () {
             eval "$cmd"
         done
 
-    } 2> >(sed -u -e "s/^/TIME /")
+    } 2> >(sed -u -e "s/^/TIME /") {SHELTER_ASSERT_FD}> >(sed -u -e "s/^/ASSERT /")
 
     printf 'EXIT %s\n' "$rc"
 }

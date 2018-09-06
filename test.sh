@@ -155,6 +155,11 @@ SKIPPED sample_test_case_1_successful
 EOF
 }
 
+test_shelter_run_test_case_assert_fd_prefixed () {
+    # shellcheck disable=SC2016
+    shelter_run_test_case 'echo TEST >&"${SHELTER_ASSERT_FD}"' | grep '^ASSERT TEST$' >/dev/null
+}
+
 test_shelter_run_test_class_name () (
 
     # Mock
