@@ -221,6 +221,9 @@ shelter_run_test_suite () {
                 EXIT)
                     [[ "$value" = '0' ]] || shelter_suite_errors+=1
                     ;;
+                ASSERT)
+                    shelter_suite_failures+=1
+                    ;;
                 TIME)
                     shelter_suite_time=$(bc <<< "$shelter_suite_time + $value" | sed 's/^\./0./')
                     ;;
@@ -233,7 +236,7 @@ shelter_run_test_suite () {
         done < <(unset shelter_suite_tests shelter_suite_errors shelter_suite_failures shelter_suite_skipped shelter_suite_line shelter_suite_time; eval "$1")
 
         printf '0 SUITE_TESTS %s\n' "$shelter_suite_tests"
-        printf '0 SUITE_ERRORS %s\n' "$shelter_suite_errors"
+        printf '0 SUITE_ERRORS %s\n' "$((shelter_suite_errors - shelter_suite_failures))"
         printf '0 SUITE_FAILURES %s\n' "$shelter_suite_failures"
         printf '0 SUITE_SKIPPED %s\n' "$shelter_suite_skipped"
         printf '0 SUITE_TIME %s\n' "$shelter_suite_time"

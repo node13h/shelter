@@ -229,22 +229,30 @@ TIME 0.01
 CMD cmd_2
 EXIT 1
 TIME 1.5
+CMD cmd_3
+ASSERT some_assert_fn Assertion error!
+EXIT 1
+TIME 0.01
 EOF
     }
 
     diff -du <(shelter_run_test_suite test_shelter_run_test_suite_suite_mock_1) - <<"EOF"
 SUITE_ERRORS 1
-SUITE_FAILURES 0
+SUITE_FAILURES 1
 SUITE_NAME test_shelter_run_test_suite_suite_mock_1
 SUITE_SKIPPED 0
-SUITE_TESTS 2
-SUITE_TIME 1.51
+SUITE_TESTS 3
+SUITE_TIME 1.52
 CMD cmd_1
 EXIT 0
 TIME 0.01
 CMD cmd_2
 EXIT 1
 TIME 1.5
+CMD cmd_3
+ASSERT some_assert_fn Assertion error!
+EXIT 1
+TIME 0.01
 EOF
 )
 
@@ -259,6 +267,10 @@ TIME 0.01
 CMD cmd_2
 EXIT 1
 TIME 1.5
+CMD cmd_3
+ASSERT some_assert_fn Assertion error!
+EXIT 1
+TIME 0.01
 EOF
     }
 
@@ -276,23 +288,27 @@ EOF
 
     diff -du <(shelter_run_test_suites all test_shelter_run_test_suites_suite_mock_) - <<"EOF"
 SUITES_ERRORS 1
-SUITES_FAILURES 0
+SUITES_FAILURES 1
 SUITES_NAME all
 SUITES_SKIPPED 1
-SUITES_TESTS 5
-SUITES_TIME 2.02
+SUITES_TESTS 6
+SUITES_TIME 2.03
 SUITE_ERRORS 1
-SUITE_FAILURES 0
+SUITE_FAILURES 1
 SUITE_NAME test_shelter_run_test_suites_suite_mock_1
 SUITE_SKIPPED 0
-SUITE_TESTS 2
-SUITE_TIME 1.51
+SUITE_TESTS 3
+SUITE_TIME 1.52
 CMD cmd_1
 EXIT 0
 TIME 0.01
 CMD cmd_2
 EXIT 1
 TIME 1.5
+CMD cmd_3
+ASSERT some_assert_fn Assertion error!
+EXIT 1
+TIME 0.01
 SUITE_ERRORS 0
 SUITE_FAILURES 0
 SUITE_NAME test_shelter_run_test_suites_suite_mock_2
