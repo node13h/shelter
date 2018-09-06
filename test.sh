@@ -52,6 +52,13 @@ EOF
     ) >/dev/null
 }
 
+test_assert_stdout_assert_fd_message () {
+    diff -du <(assert_stdout <(echo TEST) <(echo FAIL) 'Assert failed!' {SHELTER_ASSERT_FD}>&1 &>/dev/null) - <<"EOF"
+assert_stdout Assert failed!
+EOF
+
+}
+
 test_assert_stdout_fail_stdout_diff () {
     [[ -n "$(_mute_assert_fd assert_stdout 'echo TEST' <(echo FAIL) 2>/dev/null)" ]]
 }
