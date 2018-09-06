@@ -27,7 +27,8 @@ declare -ag SHELTER_SKIP_TEST_CASES=()
 ## a diff will be printed to STDERR and the command will exit
 ## with a non-zero exit code
 ## @param cmd command. Will be passed to 'eval'
-## @param expected_file OPTIONAL file containing the expected output.
+## @param expected_file file containing the expected output.
+## @param msg assertion message
 ## If not specified STDIN will be used
 ##
 ## Examples
