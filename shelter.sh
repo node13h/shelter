@@ -23,13 +23,13 @@ declare -ag SHELTER_SKIP_TEST_CASES=()
 
 ## @fn assert_stdout ()
 ## @brief Assert command's STDOUT output matches the expected one
-## @details In case STDOUT output does not match the expected -
-## a diff will be printed to STDERR and the command will exit
+## @details In case STDOUT output does not match the expected one -
+## a diff will be printed to STDOUT, assertion name and message
+## will be output to SHELTER_ASSERT_FD, and the command will exit
 ## with a non-zero exit code
 ## @param cmd command. Will be passed to 'eval'
 ## @param expected_file file containing the expected output.
 ## @param msg assertion message
-## If not specified STDIN will be used
 ##
 ## Examples
 ##
@@ -40,7 +40,7 @@ declare -ag SHELTER_SKIP_TEST_CASES=()
 ##
 ## Using STDIN to pass the expected output
 ## @code{.sh}
-## assert_stdout 'bc << 1+1' '-' <<< 2
+## assert_stdout 'bc << 1+1' - <<< 2
 ## @endcode
 assert_stdout () {
     declare cmd="$1"
