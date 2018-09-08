@@ -21,6 +21,27 @@ declare -ag SHELTER_SKIP_TEST_CASES=()
 # It provides a side channel for assertion messages
 [[ -n "${SHELTER_ASSERT_FD:-}" ]] || exec {SHELTER_ASSERT_FD}>&2
 
+
+# This function is used internally to emit assertion messages
+# to SHELTER_ASSERT_FD while retaining the exit code of a
+# previous command.
+# It may only be used inside another function!
+# Exmaple:
+#  $ exec {SHELTER_ASSERT_FD}>&1
+#  $ test_fn () { bash -c 'exit 5' || _assert_msg 'FAILED!'; }
+#  $ test_fn || rc="$?"
+#  test_fn FAILED!
+#  $ echo "$rc"
+#  5
+_assert_msg () {
+    local rc="$?"
+    local msg="$1"
+    local assert_cmd="${FUNCNAME[1]}"
+
+    printf '%s %s\n' "$assert_cmd" "$msg" >&"${SHELTER_ASSERT_FD}"
+    return "$rc"
+}
+
 ## @fn assert_stdout ()
 ## @brief Assert command's STDOUT output matches the expected one
 ## @details In case STDOUT output does not match the expected one -
@@ -46,15 +67,8 @@ assert_stdout () {
     declare cmd="$1"
     declare expected_file="${2}"
     declare msg="${3:-STDOUT of \"${cmd}\" does not match the contents of \"${expected_file}\"}"
-    declare rc
 
-    if diff -du <(eval "$cmd") "$expected_file"; then
-        return 0
-    else
-        rc="$?"
-        printf '%s %s\n' "${FUNCNAME[0]}" "$msg" >&"${SHELTER_ASSERT_FD}"
-        return "$rc"
-    fi
+    diff -du <(eval "$cmd") "$expected_file" || _assert_msg "$msg"
 }
 
 
