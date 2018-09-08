@@ -16,15 +16,41 @@ set -euo pipefail
 ## certain test cases
 declare -ag SHELTER_SKIP_TEST_CASES=()
 
+# shellcheck disable=SC2034
+# This variable is used internally by the assert_ functions
+# It provides a side channel for assertion messages
+[[ -n "${SHELTER_ASSERT_FD:-}" ]] || exec {SHELTER_ASSERT_FD}>&2
+
+
+# This function is used internally to emit assertion messages
+# to SHELTER_ASSERT_FD while retaining the exit code of a
+# previous command.
+# It may only be used inside another function!
+# Exmaple:
+#  $ exec {SHELTER_ASSERT_FD}>&1
+#  $ test_fn () { bash -c 'exit 5' || _assert_msg 'FAILED!'; }
+#  $ test_fn || rc="$?"
+#  test_fn FAILED!
+#  $ echo "$rc"
+#  5
+_assert_msg () {
+    local rc="$?"
+    local msg="$1"
+    local assert_cmd="${FUNCNAME[1]}"
+
+    printf '%s %s\n' "$assert_cmd" "$msg" >&"${SHELTER_ASSERT_FD}"
+    return "$rc"
+}
 
 ## @fn assert_stdout ()
 ## @brief Assert command's STDOUT output matches the expected one
-## @details In case STDOUT output does not match the expected -
-## a diff will be printed to STDERR and the command will exit
+## @details In case STDOUT output does not match the expected one -
+## a diff will be printed to STDOUT, assertion name and message
+## will be output to SHELTER_ASSERT_FD, and the command will exit
 ## with a non-zero exit code
 ## @param cmd command. Will be passed to 'eval'
-## @param expected_file OPTIONAL file containing the expected output.
-## If not specified STDIN will be used
+## @param expected_file file containing the expected output.
+## @param msg assertion message
 ##
 ## Examples
 ##
@@ -35,13 +61,14 @@ declare -ag SHELTER_SKIP_TEST_CASES=()
 ##
 ## Using STDIN to pass the expected output
 ## @code{.sh}
-## assert_stdout 'bc << 1+1' <<< 2
+## assert_stdout 'bc << 1+1' - <<< 2
 ## @endcode
 assert_stdout () {
     declare cmd="$1"
-    declare expected_file="${2:--}"
+    declare expected_file="${2}"
+    declare msg="${3:-STDOUT of \"${cmd}\" does not match the contents of \"${expected_file}\"}"
 
-    diff -du <(eval "$cmd") "$expected_file" >&2
+    diff -du <(eval "$cmd") "$expected_file" || _assert_msg "$msg"
 }
 
 
@@ -118,7 +145,7 @@ shelter_run_test_case () {
             eval "$cmd"
         done
 
-    } 2> >(sed -u -e "s/^/TIME /")
+    } 2> >(sed -u -e "s/^/TIME /") {SHELTER_ASSERT_FD}> >(sed -u -e "s/^/ASSERT /")
 
     printf 'EXIT %s\n' "$rc"
 }
@@ -208,6 +235,9 @@ shelter_run_test_suite () {
                 EXIT)
                     [[ "$value" = '0' ]] || shelter_suite_errors+=1
                     ;;
+                ASSERT)
+                    shelter_suite_failures+=1
+                    ;;
                 TIME)
                     shelter_suite_time=$(bc <<< "$shelter_suite_time + $value" | sed 's/^\./0./')
                     ;;
@@ -220,7 +250,7 @@ shelter_run_test_suite () {
         done < <(unset shelter_suite_tests shelter_suite_errors shelter_suite_failures shelter_suite_skipped shelter_suite_line shelter_suite_time; eval "$1")
 
         printf '0 SUITE_TESTS %s\n' "$shelter_suite_tests"
-        printf '0 SUITE_ERRORS %s\n' "$shelter_suite_errors"
+        printf '0 SUITE_ERRORS %s\n' "$((shelter_suite_errors - shelter_suite_failures))"
         printf '0 SUITE_FAILURES %s\n' "$shelter_suite_failures"
         printf '0 SUITE_SKIPPED %s\n' "$shelter_suite_skipped"
         printf '0 SUITE_TIME %s\n' "$shelter_suite_time"

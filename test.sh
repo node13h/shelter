@@ -11,6 +11,14 @@ PROG_DIR=$(dirname "${BASH_SOURCE[@]}")
 # shellcheck source=shelter.sh
 source "${PROG_DIR%/}/shelter.sh"
 
+test_assert_fd () {
+    [[ -n "${SHELTER_ASSERT_FD:-}" ]]
+}
+
+_mute_assert_fd () {
+    # shellcheck disable=SC2034
+    "$@" {SHELTER_ASSERT_FD}>/dev/null
+}
 
 test_assert_stdout_success () {
     assert_stdout 'printf "%s\\n" This is a multiline test' <(
@@ -33,7 +41,7 @@ test_assert_stdout_success_stderr_silent () {
 }
 
 test_assert_stdout_fail () {
-    ! assert_stdout 'printf "%s\\n" This is a multiline test' <(
+    ! _mute_assert_fd assert_stdout 'printf "%s\\n" This is a multiline test' <(
         cat <<EOF
 This
 is
@@ -41,19 +49,26 @@ a
 multiline
 fail
 EOF
-    ) 2>/dev/null
+    ) >/dev/null
 }
 
-test_assert_stdout_fail_stdout_silent () {
-    [[ -z "$(! assert_stdout 'echo TEST' <(echo FAIL) 2>/dev/null)" ]]
+test_assert_stdout_assert_fd_message () {
+    diff -du <(assert_stdout <(echo TEST) <(echo FAIL) 'Assert failed!' {SHELTER_ASSERT_FD}>&1 &>/dev/null) - <<"EOF"
+assert_stdout Assert failed!
+EOF
+
 }
 
-test_assert_stdout_fail_stderr_diff () {
-    [[ -n "$(! assert_stdout 'echo TEST' <(echo FAIL) 2>&1 >/dev/null)" ]]
+test_assert_stdout_fail_stdout_diff () {
+    [[ -n "$(_mute_assert_fd assert_stdout 'echo TEST' <(echo FAIL) 2>/dev/null)" ]]
+}
+
+test_assert_stdout_fail_stderr_silent () {
+    [[ -z "$(_mute_assert_fd assert_stdout 'echo TEST' <(echo FAIL) 2>&1 >/dev/null)" ]]
 }
 
 test_assert_stdout_stdin_success () {
-    assert_stdout 'echo This is a test' <<< 'This is a test'
+    assert_stdout 'echo This is a test' - <<< 'This is a test'
 }
 
 sample_test_case_1_successful () {
@@ -140,6 +155,11 @@ SKIPPED sample_test_case_1_successful
 EOF
 }
 
+test_shelter_run_test_case_assert_fd_prefixed () {
+    # shellcheck disable=SC2016
+    shelter_run_test_case 'echo TEST >&"${SHELTER_ASSERT_FD}"' | grep '^ASSERT TEST$' >/dev/null
+}
+
 test_shelter_run_test_class_name () (
 
     # Mock
@@ -209,22 +229,30 @@ TIME 0.01
 CMD cmd_2
 EXIT 1
 TIME 1.5
+CMD cmd_3
+ASSERT some_assert_fn Assertion error!
+EXIT 1
+TIME 0.01
 EOF
     }
 
     diff -du <(shelter_run_test_suite test_shelter_run_test_suite_suite_mock_1) - <<"EOF"
 SUITE_ERRORS 1
-SUITE_FAILURES 0
+SUITE_FAILURES 1
 SUITE_NAME test_shelter_run_test_suite_suite_mock_1
 SUITE_SKIPPED 0
-SUITE_TESTS 2
-SUITE_TIME 1.51
+SUITE_TESTS 3
+SUITE_TIME 1.52
 CMD cmd_1
 EXIT 0
 TIME 0.01
 CMD cmd_2
 EXIT 1
 TIME 1.5
+CMD cmd_3
+ASSERT some_assert_fn Assertion error!
+EXIT 1
+TIME 0.01
 EOF
 )
 
@@ -239,6 +267,10 @@ TIME 0.01
 CMD cmd_2
 EXIT 1
 TIME 1.5
+CMD cmd_3
+ASSERT some_assert_fn Assertion error!
+EXIT 1
+TIME 0.01
 EOF
     }
 
@@ -256,23 +288,27 @@ EOF
 
     diff -du <(shelter_run_test_suites all test_shelter_run_test_suites_suite_mock_) - <<"EOF"
 SUITES_ERRORS 1
-SUITES_FAILURES 0
+SUITES_FAILURES 1
 SUITES_NAME all
 SUITES_SKIPPED 1
-SUITES_TESTS 5
-SUITES_TIME 2.02
+SUITES_TESTS 6
+SUITES_TIME 2.03
 SUITE_ERRORS 1
-SUITE_FAILURES 0
+SUITE_FAILURES 1
 SUITE_NAME test_shelter_run_test_suites_suite_mock_1
 SUITE_SKIPPED 0
-SUITE_TESTS 2
-SUITE_TIME 1.51
+SUITE_TESTS 3
+SUITE_TIME 1.52
 CMD cmd_1
 EXIT 0
 TIME 0.01
 CMD cmd_2
 EXIT 1
 TIME 1.5
+CMD cmd_3
+ASSERT some_assert_fn Assertion error!
+EXIT 1
+TIME 0.01
 SUITE_ERRORS 0
 SUITE_FAILURES 0
 SUITE_NAME test_shelter_run_test_suites_suite_mock_2
