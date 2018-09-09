@@ -29,8 +29,10 @@ lint:
 test: lint
 	bash test.sh
 
-doc:
+doc/man/man3/shelter.sh.3:
 	doxygen Doxyfile
+
+doc: doc/man/man3/shelter.sh.3
 
 build: test doc
 
