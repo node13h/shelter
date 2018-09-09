@@ -54,9 +54,11 @@ clean:
 release:
 	git tag $(VERSION)
 
-sdist:
+sdist/shelter-$(VERSION).tar.gz:
 	mkdir -p sdist; \
 	git archive "--prefix=shelter-$(VERSION)/" -o "sdist/shelter-$(VERSION).tar.gz" "$(VERSION)"
+
+sdist: sdist/shelter-$(VERSION).tar.gz
 
 rpm: PREFIX := /usr
 rpm: sdist
