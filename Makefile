@@ -10,7 +10,7 @@ else
 PKG_RELEASE := 1
 endif
 
-BINTRAY_RPM_PATH := alikov/fedora/shelter/$(PKG_VERSION)
+BINTRAY_RPM_PATH := alikov/rpm/shelter/$(PKG_VERSION)
 BINTRAY_DEB_PATH := alikov/deb/shelter/$(PKG_VERSION)
 
 PREFIX := /usr/local
