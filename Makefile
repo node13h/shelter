@@ -1,4 +1,14 @@
+SHELL = bash
+SEMVER_RE := ^([0-9]+.[0-9]+.[0-9]+)(-([0-9A-Za-z.-]+))?(\+([0-9A-Za-z.-]))?$
 VERSION := $(shell cat VERSION)
+VERSION_PRE := $(shell [[ "$(VERSION)" =~ $(SEMVER_RE) ]] && printf '%s\n' "$${BASH_REMATCH[3]:-}")
+
+PKG_VERSION := $(shell [[ "$(VERSION)" =~ $(SEMVER_RE) ]] && printf '%s\n' "$${BASH_REMATCH[1]}")
+ifneq ($(VERSION_PRE),)
+PKG_RELEASE := 1.$(VERSION_PRE)
+else
+PKG_RELEASE := 1
+endif
 
 PREFIX := /usr/local
 BINDIR = $(PREFIX)/bin
@@ -49,12 +59,10 @@ sdist:
 rpm: PREFIX := /usr
 rpm: sdist
 	mkdir -p bdist; \
-	rpm_version=$$(cut -f 1 -d '-' <<< "$(VERSION)"); \
-	rpm_release=$$(cut -s -f 2 -d '-' <<< "$(VERSION)"); \
 	sourcedir=$$(readlink -f sdist); \
 	rpmbuild -ba "shelter.spec" \
-		--define "rpm_version $${rpm_version}" \
-		--define "rpm_release $${rpm_release:-1}" \
+		--define "rpm_version $(PKG_VERSION)" \
+		--define "rpm_release $(PKG_RELEASE)" \
 		--define "full_version $(VERSION)" \
 		--define "prefix $(PREFIX)" \
 		--define "_srcrpmdir sdist/" \
