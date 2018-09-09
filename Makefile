@@ -11,6 +11,7 @@ PKG_RELEASE := 1
 endif
 
 BINTRAY_RPM_PATH := alikov/fedora/shelter/$(PKG_VERSION)
+BINTRAY_DEB_PATH := alikov/deb/shelter/$(PKG_VERSION)
 
 PREFIX := /usr/local
 BINDIR = $(PREFIX)/bin
@@ -24,8 +25,9 @@ CURRENT_DIR := $(shell printf '%q\n' "$$(pwd -P)")
 SDIST_TARBALL := sdist/shelter-$(VERSION).tar.gz
 SDIST_DIR = shelter-$(VERSION)
 RPM_PACKAGE := bdist/noarch/shelter-$(PKG_VERSION)-$(PKG_RELEASE).noarch.rpm
+DEB_PACKAGE := bdist/shelter_$(VERSION)_all.deb
 
-.PHONY: all lint test doc build install uninstall clean release sdist rpm publish-rpm publish
+.PHONY: all lint test doc build install uninstall clean release sdist rpm publish-rpm deb publish-deb publish
 
 all: build
 
@@ -87,7 +89,25 @@ $(RPM_PACKAGE): $(SDIST_TARBALL)
 
 rpm: $(RPM_PACKAGE)
 
+control:
+	sed -e 's~@VERSION@~$(VERSION)~g' control.in >control
+
+$(DEB_PACKAGE): control $(SDIST_TARBALL)
+	mkdir -p bdist; \
+	target=$$(mktemp -d); \
+	mkdir -p "$${target}/DEBIAN"; \
+	cp control "$${target}/DEBIAN/control"; \
+	tar -C sdist -xzf $(SDIST_TARBALL); \
+	( cd sdist/$(SDIST_DIR); make DESTDIR="$$target" PREFIX=/usr install; ); \
+	dpkg-deb --build "$$target" $(DEB_PACKAGE); \
+	rm -rf -- "$$target"
+
+deb: $(DEB_PACKAGE)
+
 publish-rpm: rpm
 	jfrog bt upload --publish=true $(RPM_PACKAGE) $(BINTRAY_RPM_PATH)
 
-publish: publish-rpm
+publish-deb: deb
+	jfrog bt upload --publish=true --deb xenial/main/all $(DEB_PACKAGE) $(BINTRAY_DEB_PATH)
+
+publish: publish-rpm publish-deb
