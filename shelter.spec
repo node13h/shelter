@@ -5,13 +5,13 @@ Summary:   Shell-based testing framework
 URL:       https://github.com/node13h/shelter
 License:   MIT
 BuildArch: noarch
-Source0:   shelter-%{full_version}.tar.gz
+Source0:   %{sdist_tarball}
 
 %description
 A library for shell-based testing scripts
 
 %prep
-%setup -n shelter-%{full_version}
+%setup -n %{sdist_dir}
 
 %clean
 rm -rf --one-file-system --preserve-root -- "%{buildroot}"

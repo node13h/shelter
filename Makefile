@@ -19,6 +19,12 @@ SHAREDIR = $(PREFIX)/share
 DOCSDIR = $(SHAREDIR)/doc
 MANDIR = $(SHAREDIR)/man
 
+CURRENT_DIR := $(shell printf '%q\n' "$$(pwd -P)")
+
+SDIST_TARBALL := sdist/shelter-$(VERSION).tar.gz
+SDIST_DIR = shelter-$(VERSION)
+RPM_PACKAGE := bdist/noarch/shelter-$(PKG_VERSION)-$(PKG_RELEASE).noarch.rpm
+
 .PHONY: all lint test doc build install uninstall clean release sdist rpm publish-rpm publish
 
 all: build
@@ -37,17 +43,17 @@ doc: doc/man/man3/shelter.sh.3
 build: test doc
 
 install: build
-	install -m 0755 -d "$(DESTDIR)$(BINDIR)"
-	install -m 0755 -d "$(DESTDIR)$(MANDIR)/man3"
-	install -m 0755 -d "$(DESTDIR)$(DOCSDIR)/shelter"
-	install -m 0755 doc/man/man3/shelter.sh.3 "$(DESTDIR)$(MANDIR)/man3"
-	install -m 0755 shelter.sh "$(DESTDIR)$(BINDIR)"
-	install -m 0644 README.* "$(DESTDIR)$(DOCSDIR)/shelter"
+	install -m 0755 -d $(DESTDIR)$(BINDIR)
+	install -m 0755 -d $(DESTDIR)$(MANDIR)/man3
+	install -m 0755 -d $(DESTDIR)$(DOCSDIR)/shelter
+	install -m 0755 doc/man/man3/shelter.sh.3 $(DESTDIR)$(MANDIR)/man3
+	install -m 0755 shelter.sh $(DESTDIR)$(BINDIR)
+	install -m 0644 README.* $(DESTDIR)$(DOCSDIR)/shelter
 
 uninstall:
-	rm -rf -- "$(DESTDIR)$(DOCSDIR)/shelter"
-	rm -f -- "$(DESTDIR)$(MANDIR)/man3/shelter.sh.3"
-	rm -f -- "$(DESTDIR)$(BINDIR)/shelter.sh"
+	rm -rf -- $(DESTDIR)$(DOCSDIR)/shelter
+	rm -f -- $(DESTDIR)$(MANDIR)/man3/shelter.sh.3
+	rm -f -- $(DESTDIR)$(BINDIR)/shelter.sh
 
 clean:
 	rm -rf -- doc
@@ -56,30 +62,32 @@ clean:
 release:
 	git tag $(VERSION)
 
-sdist/shelter-$(VERSION).tar.gz:
+$(SDIST_TARBALL):
 	mkdir -p sdist; \
-	git archive "--prefix=shelter-$(VERSION)/" -o "sdist/shelter-$(VERSION).tar.gz" "$(VERSION)"
+	git archive --prefix=$(SDIST_DIR)/ -o $(SDIST_TARBALL) $(VERSION)
 
-sdist: sdist/shelter-$(VERSION).tar.gz
+sdist: $(SDIST_TARBALL)
 
-rpm: PREFIX := /usr
-rpm: sdist
+$(RPM_PACKAGE): PREFIX := /usr
+$(RPM_PACKAGE): $(SDIST_TARBALL)
 	mkdir -p bdist; \
-	sourcedir=$$(pwd -P); \
 	rpmbuild -ba "shelter.spec" \
-		--define "rpm_version $(PKG_VERSION)" \
-		--define "rpm_release $(PKG_RELEASE)" \
-		--define "full_version $(VERSION)" \
-		--define "prefix $(PREFIX)" \
-		--define "_srcrpmdir sdist/" \
-		--define "_rpmdir bdist/" \
-		--define "_sourcedir $${sourcedir}/sdist" \
-		--define "_bindir $(BINDIR)" \
-		--define "_libdir $(LIBDIR)" \
-		--define "_defaultdocdir $(DOCSDIR)" \
-		--define "_mandir $(MANDIR)"
+		--define rpm_version\ $(PKG_VERSION) \
+		--define rpm_release\ $(PKG_RELEASE) \
+		--define sdist_dir\ $(SDIST_DIR) \
+		--define sdist_tarball\ $(SDIST_TARBALL) \
+		--define prefix\ $(PREFIX) \
+		--define _srcrpmdir\ sdist/ \
+		--define _rpmdir\ bdist/ \
+		--define _sourcedir\ $(CURRENT_DIR)/sdist \
+		--define _bindir\ $(BINDIR) \
+		--define _libdir\ $(LIBDIR) \
+		--define _defaultdocdir\ $(DOCSDIR) \
+		--define _mandir\ $(MANDIR)
 
-publish-rpm:
-	jfrog bt upload --publish=true bdist/noarch/shelter-$(PKG_VERSION)-$(PKG_RELEASE).noarch.rpm $(BINTRAY_RPM_PATH)
+rpm: $(RPM_PACKAGE)
+
+publish-rpm: rpm
+	jfrog bt upload --publish=true $(RPM_PACKAGE) $(BINTRAY_RPM_PATH)
 
 publish: publish-rpm
