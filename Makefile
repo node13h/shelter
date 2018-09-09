@@ -10,6 +10,8 @@ else
 PKG_RELEASE := 1
 endif
 
+BINTRAY_RPM_PATH := alikov/fedora/shelter/$(PKG_VERSION)
+
 PREFIX := /usr/local
 BINDIR = $(PREFIX)/bin
 LIBDIR = $(PREFIX)/lib
@@ -17,7 +19,7 @@ SHAREDIR = $(PREFIX)/share
 DOCSDIR = $(SHAREDIR)/doc
 MANDIR = $(SHAREDIR)/man
 
-.PHONY: all lint test doc build install uninstall clean release sdist rpm
+.PHONY: all lint test doc build install uninstall clean release sdist rpm publish-rpm publish
 
 all: build
 
@@ -72,3 +74,8 @@ rpm: sdist
 		--define "_libdir $(LIBDIR)" \
 		--define "_defaultdocdir $(DOCSDIR)" \
 		--define "_mandir $(MANDIR)"
+
+publish-rpm:
+	jfrog bt upload --publish=true bdist/noarch/shelter-$(PKG_VERSION)-$(PKG_RELEASE).noarch.rpm $(BINTRAY_RPM_PATH)
+
+publish: publish-rpm
