@@ -65,7 +65,7 @@ sdist: sdist/shelter-$(VERSION).tar.gz
 rpm: PREFIX := /usr
 rpm: sdist
 	mkdir -p bdist; \
-	sourcedir=$$(readlink -f sdist); \
+	sourcedir=$$(pwd -P); \
 	rpmbuild -ba "shelter.spec" \
 		--define "rpm_version $(PKG_VERSION)" \
 		--define "rpm_release $(PKG_RELEASE)" \
@@ -73,7 +73,7 @@ rpm: sdist
 		--define "prefix $(PREFIX)" \
 		--define "_srcrpmdir sdist/" \
 		--define "_rpmdir bdist/" \
-		--define "_sourcedir $${sourcedir}" \
+		--define "_sourcedir $${sourcedir}/sdist" \
 		--define "_bindir $(BINDIR)" \
 		--define "_libdir $(LIBDIR)" \
 		--define "_defaultdocdir $(DOCSDIR)" \
