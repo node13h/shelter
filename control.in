@@ -1,0 +1,4 @@
+Package: shelter
+Architecture: all
+Description: Shell-based testing framework
+Version: @VERSION@
