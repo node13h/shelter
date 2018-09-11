@@ -71,6 +71,21 @@ test_assert_stdout_stdin_success () {
     assert_stdout 'echo This is a test' - <<< 'This is a test'
 }
 
+test_assert_success_sucess () {
+    assert_success 'false || true'
+}
+
+test_assert_success_failure () {
+    ! _mute_assert_fd assert_success 'false && true'
+}
+
+test_assert_success_assert_fd_message () {
+    diff -du <(assert_success false 'Assert failed!' {SHELTER_ASSERT_FD}>&1 &>/dev/null) - <<"EOF"
+assert_success Assert failed!
+EOF
+}
+
+
 sample_test_case_1_successful () {
     echo 'Hello'
     echo 'World' >&2

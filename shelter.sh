@@ -71,6 +71,25 @@ assert_stdout () {
     diff -du <(eval "$cmd") "$expected_file" || _assert_msg "$msg"
 }
 
+## @fn assert_success ()
+## @brief Assert command executes with a zero exit code
+## @details If the supplied command fails - an assertion name and message
+## will be output to SHELTER_ASSERT_FD and the function will exit
+## with the same error code as the supplied command did
+## @param cmd command. Will be passed to 'eval'
+## @param msg OPTIONAL assertion message
+##
+## Example
+##
+## @code{.sh}
+## assert_success 'systemctl -q is-active sshd' 'SSH daemon is not running!'
+## @endcode
+assert_success () {
+    declare cmd="$1"
+    declare msg="${2:-\"${cmd}\" failed}"
+
+    eval "$cmd" || _assert_msg "$msg"
+}
 
 ## @fn shelter_run_test_case ()
 ## @brief Run a command in an isolated environment and return an annotated output
