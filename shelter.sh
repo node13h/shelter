@@ -43,10 +43,10 @@ _assert_msg () {
 }
 
 ## @fn assert_stdout ()
-## @brief Assert command's STDOUT output matches the expected one
-## @details In case STDOUT output does not match the expected one -
-## a diff will be printed to STDOUT, assertion name and message
-## will be output to SHELTER_ASSERT_FD, and the command will exit
+## @brief Assert the STDOUT output of the supplied command matches the expected
+## @details In case the STDOUT output does not match the expected one -
+## a diff will be printed to STDOUT, an assertion name and message
+## will be output to SHELTER_ASSERT_FD, and the function will exit
 ## with a non-zero exit code
 ## @param cmd command. Will be passed to 'eval'
 ## @param OPTIONAL expected_file. File containing the expected output.
@@ -73,7 +73,7 @@ assert_stdout () {
 }
 
 ## @fn assert_success ()
-## @brief Assert command executes with a zero exit code
+## @brief Assert the command executes with a zero exit code
 ## @details If the supplied command fails - an assertion name and message
 ## will be output to SHELTER_ASSERT_FD and the function will exit
 ## with the same error code as the supplied command did
