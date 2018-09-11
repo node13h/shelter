@@ -43,13 +43,14 @@ _assert_msg () {
 }
 
 ## @fn assert_stdout ()
-## @brief Assert command's STDOUT output matches the expected one
-## @details In case STDOUT output does not match the expected one -
-## a diff will be printed to STDOUT, assertion name and message
-## will be output to SHELTER_ASSERT_FD, and the command will exit
+## @brief Assert the STDOUT output of the supplied command matches the expected
+## @details In case the STDOUT output does not match the expected one -
+## a diff will be printed to STDOUT, an assertion name and message
+## will be output to SHELTER_ASSERT_FD, and the function will exit
 ## with a non-zero exit code
 ## @param cmd command. Will be passed to 'eval'
-## @param expected_file file containing the expected output.
+## @param OPTIONAL expected_file. File containing the expected output.
+## Use dash (the default) for STDIN. Process substitution will also work
 ## @param msg assertion message
 ##
 ## Examples
@@ -61,16 +62,78 @@ _assert_msg () {
 ##
 ## Using STDIN to pass the expected output
 ## @code{.sh}
-## assert_stdout 'bc << 1+1' - <<< 2
+## assert_stdout 'bc << 1+1' <<< 2
 ## @endcode
 assert_stdout () {
     declare cmd="$1"
-    declare expected_file="${2}"
+    declare expected_file="${2:--}"
     declare msg="${3:-STDOUT of \"${cmd}\" does not match the contents of \"${expected_file}\"}"
 
     diff -du <(eval "$cmd") "$expected_file" || _assert_msg "$msg"
 }
 
+## @fn assert_success ()
+## @brief Assert the command executes with a zero exit code
+## @details If the supplied command fails - an assertion name and message
+## will be output to SHELTER_ASSERT_FD and the function will exit
+## with the same error code as the supplied command did
+## @param cmd command. Will be passed to 'eval'
+## @param msg OPTIONAL assertion message
+##
+## Example
+##
+## @code{.sh}
+## assert_success 'systemctl -q is-active sshd' 'SSH daemon is not running!'
+## @endcode
+assert_success () {
+    declare cmd="$1"
+    declare msg="${2:-\"${cmd}\" failed}"
+
+    eval "$cmd" || _assert_msg "$msg"
+}
+
+## @fn assert_fail ()
+## @brief Assert command executes with a non-zero exit code
+## @details If the supplied command succeeds - an assertion name and message
+## will be output to SHELTER_ASSERT_FD and the function will exit
+## with a non-zero exit code
+## @param cmd command. Will be passed to 'eval'
+## @param exit_code OPTIONAL expected exit code.
+## Must be greater than zero or an empty string (the default) which
+## will match any non-zero exit code
+## @param msg OPTIONAL assertion message
+##
+## Examples
+##
+## Catching specific exit code
+## @code{.sh}
+## assert_fail 'ls --invalid-arg' 2
+## @endcode
+##
+## Catching any non-zero exit code
+## @code{.sh}
+## assert_fail 'systemctl -q is-enabled httpd' '' 'httpd service should be disabled'
+## @endcode
+assert_fail () {
+    declare cmd="$1"
+    declare exit_code="${2:-}"
+    declare msg="${3:-\"${cmd}\" did not fail}"
+
+    if [[ "$exit_code" = '0' ]]; then
+        printf 'Invalid value for exit_code (%s)\n' "$exit_code" >&2
+        return 1
+    fi
+
+    declare rc=0
+
+    eval "$cmd" || rc="$?"
+
+    if [[ -z "$exit_code" ]]; then
+        [[ "$rc" -gt 0 ]] || _assert_msg "$msg"
+    else
+        [[ "$rc" -eq "$exit_code" ]] || _assert_msg "$msg"
+    fi
+}
 
 ## @fn shelter_run_test_case ()
 ## @brief Run a command in an isolated environment and return an annotated output

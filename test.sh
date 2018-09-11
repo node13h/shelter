@@ -56,7 +56,6 @@ test_assert_stdout_assert_fd_message () {
     diff -du <(assert_stdout <(echo TEST) <(echo FAIL) 'Assert failed!' {SHELTER_ASSERT_FD}>&1 &>/dev/null) - <<"EOF"
 assert_stdout Assert failed!
 EOF
-
 }
 
 test_assert_stdout_fail_stdout_diff () {
@@ -68,8 +67,49 @@ test_assert_stdout_fail_stderr_silent () {
 }
 
 test_assert_stdout_stdin_success () {
-    assert_stdout 'echo This is a test' - <<< 'This is a test'
+    assert_stdout 'echo This is a test' <<< 'This is a test'
 }
+
+test_assert_success_sucess () {
+    assert_success 'false || true'
+}
+
+test_assert_success_failure () {
+    ! _mute_assert_fd assert_success 'false && true'
+}
+
+test_assert_success_assert_fd_message () {
+    diff -du <(assert_success false 'Assert failed!' {SHELTER_ASSERT_FD}>&1 &>/dev/null) - <<"EOF"
+assert_success Assert failed!
+EOF
+}
+
+test_assert_fail_sucess () {
+    assert_fail 'false && true'
+}
+
+test_assert_fail_sucess_specific () {
+    assert_fail '( exit 5 )' 5
+}
+
+test_assert_fail_failure () {
+    ! _mute_assert_fd assert_fail 'false || true'
+}
+
+test_assert_fail_failure_specific () {
+    ! _mute_assert_fd assert_fail '( exit 5 )' 1
+}
+
+test_assert_fail_invalid_arg () {
+    diff -du <(assert_fail true 0 '' 'Assert failed!' {SHELTER_ASSERT_FD}>&1 &>/dev/null) <(printf '')
+}
+
+test_assert_fail_assert_fd_message () {
+    diff -du <(assert_fail true '' 'Assert failed!' {SHELTER_ASSERT_FD}>&1 &>/dev/null) - <<"EOF"
+assert_fail Assert failed!
+EOF
+}
+
 
 sample_test_case_1_successful () {
     echo 'Hello'
