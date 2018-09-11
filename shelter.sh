@@ -49,7 +49,8 @@ _assert_msg () {
 ## will be output to SHELTER_ASSERT_FD, and the command will exit
 ## with a non-zero exit code
 ## @param cmd command. Will be passed to 'eval'
-## @param expected_file file containing the expected output.
+## @param OPTIONAL expected_file. File containing the expected output.
+## Use dash (the default) for STDIN. Process substitution will also work
 ## @param msg assertion message
 ##
 ## Examples
@@ -61,11 +62,11 @@ _assert_msg () {
 ##
 ## Using STDIN to pass the expected output
 ## @code{.sh}
-## assert_stdout 'bc << 1+1' - <<< 2
+## assert_stdout 'bc << 1+1' <<< 2
 ## @endcode
 assert_stdout () {
     declare cmd="$1"
-    declare expected_file="${2}"
+    declare expected_file="${2:--}"
     declare msg="${3:-STDOUT of \"${cmd}\" does not match the contents of \"${expected_file}\"}"
 
     diff -du <(eval "$cmd") "$expected_file" || _assert_msg "$msg"

@@ -68,7 +68,7 @@ test_assert_stdout_fail_stderr_silent () {
 }
 
 test_assert_stdout_stdin_success () {
-    assert_stdout 'echo This is a test' - <<< 'This is a test'
+    assert_stdout 'echo This is a test' <<< 'This is a test'
 }
 
 test_assert_success_sucess () {
