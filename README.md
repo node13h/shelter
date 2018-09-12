@@ -53,6 +53,8 @@
 ## Showcase
 
 ```bash
+source shelter.sh
+
 foo () {
     assert_success true
 }
@@ -61,19 +63,27 @@ bar () {
     assert_fail false
 }
 
-test_hello () {
-    assert_stdout 'echo Hello' - <<< 'Hello'
+test_good_hello () {
+    assert_stdout 'echo Hello' <<< 'Hello'
 }
 
-test_world () {
-    echo World >./tempfile
-    assert_stdout 'echo World' ./tempfile
+test_good_world () {
+    assert_stdout 'echo World' <(echo World)
+}
+
+test_bad_stdout () {
+    assert_stdout 'echo TEST' <<< 'FAIL'
+}
+
+test_bad_exit () {
+    assert_success false
 }
 
 suite_1 () {
     shelter_run_test_case foo
     shelter_run_test_case bar
-    shelter_rn_test_class PrefixedTests test_
+    shelter_run_test_class SuccessfulTests test_good_
+    shelter_run_test_class FailingTests test_bad_
 }
 
 shelter_run_test_suite suite_1
