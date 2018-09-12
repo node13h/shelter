@@ -12,6 +12,7 @@ PROG_DIR=$(dirname "${BASH_SOURCE[@]}")
 source "${PROG_DIR%/}/shelter.sh"
 
 test_assert_fd () {
+    # shellcheck disable=SC2031
     [[ -n "${SHELTER_ASSERT_FD:-}" ]]
 }
 

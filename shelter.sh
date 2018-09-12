@@ -182,35 +182,38 @@ shelter_run_test_case () {
     unset var
 
     {
-        TIMEFORMAT=%R
+        {
+            TIMEFORMAT=%R
 
-        # Backup shell options. errexit is propagated to process
-        # substitutions, therefore no special handling is needed
+            # Backup shell options. errexit is propagated to process
+            # substitutions, therefore no special handling is needed
 
-        declare -a shelter_shopt_backup
-        readarray -t shelter_shopt_backup < <(shopt -po)
+            declare -a shelter_shopt_backup
+            readarray -t shelter_shopt_backup < <(shopt -po)
 
-        set +e
+            set +e
 
-        # sequence numbers added by the last component allow
-        # user to perform sorting (sort -V) to split STDOUT and STDERR into
-        # separate blocks (preserving the correct order within the block)
-        # and reassemble back into a single block later (sort -V -k 2).
-        time eval '(set -eu; unset TIMEFORMAT shelter_shopt_backup; eval "$1" 2> >(sed -u -e "s/^/STDERR /") > >(sed -u -e "s/^/STDOUT /"))' \
-            | { grep -n '' || true; } \
-            | sed -u 's/^\([0-9]\+\):\(STDOUT\|STDERR\) /\2 \1 /'
+            # sequence numbers added by the last component allow
+            # user to perform sorting (sort -V) to split STDOUT and STDERR into
+            # separate blocks (preserving the correct order within the block)
+            # and reassemble back into a single block later (sort -V -k 2).
+            time eval '(set -eu; unset TIMEFORMAT shelter_shopt_backup; eval "$1" 2> >(sed -u "s/^/STDERR /") > >(sed -u "s/^/STDOUT /"))' \
+                | { grep -n '' || true; } \
+                | sed -u 's/^\([0-9]\+\):\(STDOUT\|STDERR\) /\2 \1 /'
 
-        declare rc="$?"
+            declare rc="$?"
 
-        # Restore shell options
-        declare cmd
-        for cmd in "${shelter_shopt_backup[@]}"; do
-            eval "$cmd"
-        done
+            # Restore shell options
+            declare cmd
+            for cmd in "${shelter_shopt_backup[@]}"; do
+                eval "$cmd"
+            done
 
-    } 2> >(sed -u -e "s/^/TIME /") {SHELTER_ASSERT_FD}> >(sed -u -e "s/^/ASSERT /")
+        } 2> >(sed -u "s/^/TIME /") {SHELTER_ASSERT_FD}> >(sed -u "s/^/ASSERT /")
 
-    printf 'EXIT %s\n' "$rc"
+        printf 'EXIT %s\n' "$rc"
+
+    } | cat  ## Synchronize all async output processors, otherwise some output (such as "TIME") may be sent to a consumer _after_ this function has completed execution, possible interfering with the output of the output of the subsequent test
 }
 
 
