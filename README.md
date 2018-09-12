@@ -44,6 +44,7 @@
 ## Highlights
 
 - Machine-readable output (JUnit XML output format coming soon!)
+- Environment is captured
 - STDOUT and STDERR are captured
 - Test case, class, suite support
 - Detailed documentation (`man shelter.sh`)
