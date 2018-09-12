@@ -164,6 +164,14 @@ TIME 0.01
 EOF
 }
 
+test_shelter_run_test_case_successful_no_output () {
+    diff -du <(shelter_run_test_case true | _exclude_env | _predictable_test_case_output) - <<"EOF"
+CMD true
+EXIT 0
+TIME 0.01
+EOF
+}
+
 test_shelter_run_test_case_failing () {
     diff -du <(shelter_run_test_case sample_test_case_1_failing | _exclude_env | _predictable_test_case_output) - <<"EOF"
 CMD sample_test_case_1_failing
