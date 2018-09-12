@@ -197,7 +197,7 @@ shelter_run_test_case () {
         # separate blocks (preserving the correct order within the block)
         # and reassemble back into a single block later (sort -V -k 2).
         time eval '(set -eu; unset TIMEFORMAT shelter_shopt_backup; eval "$1" 2> >(sed -u -e "s/^/STDERR /") > >(sed -u -e "s/^/STDOUT /"))' \
-            | grep -n '.' \
+            | { grep -n '' || true; } \
             | sed -u 's/^\([0-9]\+\):\(STDOUT\|STDERR\) /\2 \1 /'
 
         declare rc="$?"
