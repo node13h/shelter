@@ -20,24 +20,24 @@
 - Writing unit-tests for your shell scripts and libraries
 
   ```bash
-  sum () {
+  add () {
       bc <<< "$1 + $2"
   }
 
-  test_sum_int () {
-      assert_stdout 'sum 1 2' - <<< 3
+  test_add_int () {
+      assert_stdout 'add 1 2' <<< 3
   }
 
-  test_sum_float () {
-      assert_stdout 'sum 0.9 2.1' - <<< '3.0'
+  test_add_float () {
+      assert_stdout 'add 0.9 2.1' <<< '3.0'
   }
 
-  test_sum_invalid () {
-      assert_fail 'sum'
+  test_add_invalid () {
+      assert_fail 'add'
   }
 
   set -u
-  shelter_run_test_class sum test_sum_
+  shelter_run_test_class add test_add_
   ```
 
 
