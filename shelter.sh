@@ -671,6 +671,14 @@ shelter_junit_formatter () {
             printf '<?xml version="1.0" encoding="UTF-8"?>\n'
         }
 
+        xml_escaped () {
+            sed -e 's/\&/\&amp;/g' \
+                -e 's/</\&lt;/g' \
+                -e 's/>/\&gt;/g' \
+                -e 's/"/\&quot;/g' \
+                -e "s/'/\\&apos;/g"
+        }
+
         xml_attributes () {
             # shellcheck disable=SC2178
             declare -n __attributes="$1"
@@ -686,7 +694,7 @@ shelter_junit_formatter () {
                     printf ' '
                 fi
 
-                printf '%s="%s"' "$item" "${__attributes["$item"]}"
+                printf '%s="%s"' "$item" "$(xml_escaped <<< "${__attributes["$item"]}")"
             done < <(for index in "${!__attributes[@]}"; do printf '%s\n' "$index"; done | sort)
 
             printf '\n'
@@ -774,7 +782,7 @@ shelter_junit_formatter () {
             # shellcheck disable=SC2178
             declare -n __body="$body_var"
 
-            __body+=("<system-out>${message}</system-out>")
+            __body+=("<system-out>$(xml_escaped <<< "${message}")</system-out>")
         }
 
         output_body_add_stderr () {
@@ -784,7 +792,7 @@ shelter_junit_formatter () {
             # shellcheck disable=SC2178
             declare -n __body="$body_var"
 
-            __body+=("<system-err>${message}</system-err>")
+            __body+=("<system-err>$(xml_escaped <<< "${message}")</system-err>")
         }
 
         _shelter_formatter
