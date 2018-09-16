@@ -422,7 +422,7 @@ STDOUT with some standard error output
 SKIPPED cmd_5
 EOF
     }
-    diff -du <(test_shelter_junit_formatter_suites_mock | _shelter_junit_formatter) - <<"EOF"
+    diff -du <(test_shelter_junit_formatter_suites_mock | shelter_junit_formatter) - <<"EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites errors="1" failures="1" name="all" tests="6" time="2.03">
 <testsuite errors="1" failures="1" name="test_shelter_run_test_suites_suite_mock_1" skipped="0" tests="3" time="1.52">

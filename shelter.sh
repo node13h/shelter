@@ -15,25 +15,6 @@ declare -ri SHELTER_BLOCK_SUITES=1
 declare -ri SHELTER_BLOCK_SUITE=2
 declare -ri SHELTER_BLOCK_TESTCASE=3
 
-declare -rA SHELTER_JUNIT_ATTRIBUTES=(
-    [SUITES_ERRORS]=errors
-    [SUITES_FAILURES]=failures
-    [SUITES_NAME]=name
-    [SUITES_SKIPPED]=skipped
-    [SUITES_TESTS]=tests
-    [SUITES_TIME]=time
-    [SUITE_ERRORS]=errors
-    [SUITE_FAILURES]=failures
-    [SUITE_NAME]=name
-    [SUITE_SKIPPED]=skipped
-    [SUITE_TESTS]=tests
-    [SUITE_TIME]=time
-    [CMD]=name
-    [CLASS]=classname
-    [SKIPPED]=name
-    [TIME]=time
-)
-
 ## @var SHELTER_SKIP_TEST_CASES
 ## @brief A list of test case commands to skip
 ## @details When set before executing test suites allows to skip
@@ -450,125 +431,19 @@ shelter_run_test_suites () {
     } | sort -n | sed -u 's/^[0-9]\+ //'
 }
 
-_shelter_junit_header () {
-    printf '<?xml version="1.0" encoding="UTF-8"?>\n'
-}
-
-_shelter_xml_attributes () {
-    declare -n __attributes="$1"
-    declare item
-    declare -i first_item=1
-
-    [[ "${#__attributes[@]}" -gt 0 ]] || return 0
-
-    while read -r item; do
-        if [[ "$first_item" -eq 1 ]]; then
-            first_item=0
-        else
-            printf ' '
-        fi
-
-        printf '%s="%s"' "$item" "${__attributes["$item"]}"
-    done < <(for index in "${!__attributes[@]}"; do printf '%s\n' "$index"; done | sort)
-
-    printf '\n'
-}
-
-_shelter_junit_suites_open () {
-    declare attributes_var="$1"
-
-    printf '<testsuites %s>\n' "$(_shelter_xml_attributes "$attributes_var")"
-}
-
-_shelter_junit_suite_open () {
-    declare attributes_var="$1"
-
-    printf '<testsuite %s>\n' "$(_shelter_xml_attributes "$attributes_var")"
-}
-
-_shelter_junit_testcase_open () {
-    declare attributes_var="$1"
-
-    printf '<testcase %s>\n' "$(_shelter_xml_attributes "$attributes_var")"
-}
-
-_shelter_junit_testcase_body () {
-    declare body_var="$1"
-
-    declare -n __body="$body_var"
-    declare item
-
-    [[ "${#__body[@]}" -gt 0 ]] || return 0
-
-    for item in "${__body[@]}"; do
-        printf '%s\n' "$item"
-    done
-}
-
-_shelter_junit_testcase_close () {
-    printf '</testcase>\n'
-}
-
-_shelter_junit_suites_close () {
-    printf '</testsuites>\n'
-}
-
-_shelter_junit_suite_close () {
-    printf '</testsuite>\n'
-}
-
-_shelter_junit_body_add_failure () {
-    declare body_var="$1"
-    declare type="$2"
-    declare message="$3"
-
-    declare -n __body="$body_var"
-
-    declare -A attributes=([type]="$type" [message]="$message")
-
-    __body+=("<failure $(_shelter_xml_attributes attributes)></failure>")
-}
-
-# shellcheck disable=SC2178
-_shelter_junit_body_add_skipped () {
-    declare body_var="$1"
-
-    declare -n __body="$body_var"
-
-    __body+=('<skipped></skipped>')
-}
-
-# shellcheck disable=SC2178
-_shelter_junit_body_add_error () {
-    declare body_var="$1"
-
-    declare -n __body="$body_var"
-
-    __body+=('<error></error>')
-}
-
-# shellcheck disable=SC2178
-_shelter_junit_body_add_stdout () {
-    declare body_var="$1"
-    declare message="$2"
-
-    declare -n __body="$body_var"
-
-    __body+=("<system-out>${message}</system-out>")
-}
-
-# shellcheck disable=SC2178
-_shelter_junit_body_add_stderr () {
-    declare body_var="$1"
-    declare message="$2"
-
-    declare -n __body="$body_var"
-
-    __body+=("<system-err>${message}</system-err>")
-}
-
-# shellcheck disable=SC2154,SC2178
-_shelter_junit_block_transition () {
+# This function is used internally to handle
+# transitions between blocks while parsing
+# It may only be used in an environment which defines the
+# follwing functions:
+# - output_suites_open
+# - output_suites_close
+# - output_suite_open
+# - output_suite_close
+# - output_testcase_open
+# - output_testcase_body
+# - output_testcase_close
+# - output_body_add_error
+_shelter_formatter_block_transition () {
     declare next_block="$1"
     declare block_var="$2"
     declare flags_var="$3"
@@ -585,24 +460,26 @@ _shelter_junit_block_transition () {
         "$SHELTER_BLOCK_ROOT")
             case "$next_block" in
                 "$SHELTER_BLOCK_SUITES")
+                    # shellcheck disable=SC2154
                     __flags[suites]=1
                     ;;
                 "$SHELTER_BLOCK_SUITE")
+                    # shellcheck disable=SC2154
                     __flags[suite]=1
                     ;;
             esac
             ;;
 
         "$SHELTER_BLOCK_SUITES")
-            _shelter_junit_suites_open "$attributes_var"
+            output_suites_open "$attributes_var"
 
             case "$next_block" in
                 "$SHELTER_BLOCK_ROOT")
-                    _shelter_junit_suites_close
+                    output_suites_close
                     __flags[suites]=0
                     ;;
                 "$SHELTER_BLOCK_SUITES")
-                    _shelter_junit_suites_close
+                    output_suites_close
                     __flags[suites]=1
                     ;;
                 "$SHELTER_BLOCK_SUITE")
@@ -612,26 +489,26 @@ _shelter_junit_block_transition () {
             ;;
 
         "$SHELTER_BLOCK_SUITE")
-            _shelter_junit_suite_open "$attributes_var"
+            output_suite_open "$attributes_var"
 
             case "$next_block" in
                 "$SHELTER_BLOCK_ROOT")
-                    _shelter_junit_suite_close
+                    output_suite_close
                     __flags[suite]=0
                     if [[ "${__flags[suites]:-0}" -eq 1 ]]; then
-                        _shelter_junit_suites_close
+                        output_suites_close
                         __flags[suites]=0
                     fi
                     ;;
                 "$SHELTER_BLOCK_SUITES")
-                    _shelter_junit_suite_close
+                    output_suite_close
                     __flags[suite]=0
                     if [[ "${__flags[suites]:-0}" -eq 1 ]]; then
-                        _shelter_junit_suites_close
+                        output_suites_close
                     fi
                     ;;
                 "$SHELTER_BLOCK_SUITE")
-                    _shelter_junit_suite_close
+                    output_suite_close
                     __flags[suite]=1
                     ;;
             esac
@@ -639,38 +516,38 @@ _shelter_junit_block_transition () {
 
         "$SHELTER_BLOCK_TESTCASE")
 
-            _shelter_junit_testcase_open "$attributes_var"
+            output_testcase_open "$attributes_var"
             if [[ "${__flags[status]:-}" = error ]]; then
-                _shelter_junit_body_add_error "$body_var"
+                output_body_add_error "$body_var"
             fi
-            _shelter_junit_testcase_body "$body_var"
-            _shelter_junit_testcase_close
+            output_testcase_body "$body_var"
+            output_testcase_close
 
             case "$next_block" in
                 "$SHELTER_BLOCK_ROOT")
                     if [[ "${__flags[suite]:-0}" -eq 1 ]]; then
-                        _shelter_junit_suite_close
+                        output_suite_close
                         __flags[suite]=0
                     fi
                     if [[ "${__flags[suites]:-0}" -eq 1 ]]; then
-                        _shelter_junit_suites_close
+                        output_suites_close
                         __flags[suites]=0
                     fi
                     ;;
                 "$SHELTER_BLOCK_SUITES")
                     if [[ "${__flags[suite]:-0}" -eq 1 ]]; then
-                        _shelter_junit_suite_close
+                        output_suite_close
                         __flags[suite]=0
                     fi
                     __flags[suite]=0
                     if [[ "${__flags[suites]:-0}" -eq 1 ]]; then
-                        _shelter_junit_suites_close
+                        output_suites_close
                     fi
                     __flags[suites]=1
                     ;;
                 "$SHELTER_BLOCK_SUITE")
                     if [[ "${__flags[suite]:-0}" -eq 1 ]]; then
-                        _shelter_junit_suite_close
+                        output_suite_close
                     fi
                     __flags[suite]=1
                     ;;
@@ -684,38 +561,48 @@ _shelter_junit_block_transition () {
     unset '__flags[status]'
 }
 
-# shellcheck disable=SC2034
-_shelter_junit_formatter () {
+# This function is used internally as a
+# generic formatter
+# It may only be used in an environment which defines the
+# follwing functions:
+# - output_header
+# - output_body_add_skipped
+# - output_body_add_failure
+# - output_body_add_stdout
+# - output_body_add_stderr
+_shelter_formatter () {
+    # shellcheck disable=SC2034
     declare block="$SHELTER_BLOCK_ROOT"
 
     declare -A attributes=()
+    # shellcheck disable=SC2034
     declare -a body=()
     declare -A flags=()
 
-    _shelter_junit_header
+    output_header
 
     while read -r key value; do
 
         # Keys which are allowed to change the block
         case "$key" in
             SUITES_NAME)
-                _shelter_junit_block_transition "$SHELTER_BLOCK_SUITES" block flags attributes body
+                _shelter_formatter_block_transition "$SHELTER_BLOCK_SUITES" block flags attributes body
                 ;;
             SUITE_NAME)
-                _shelter_junit_block_transition "$SHELTER_BLOCK_SUITE" block flags attributes body
+                _shelter_formatter_block_transition "$SHELTER_BLOCK_SUITE" block flags attributes body
                 ;;
             CMD|SKIPPED)
-                _shelter_junit_block_transition "$SHELTER_BLOCK_TESTCASE" block flags attributes body
+                _shelter_formatter_block_transition "$SHELTER_BLOCK_TESTCASE" block flags attributes body
                 ;;
         esac
 
 
         case "$key" in
             SKIPPED)
-                _shelter_junit_body_add_skipped body
+                output_body_add_skipped body
                 ;&
             SUITES_*|SUITE_*|CMD|CLASS|TIME)
-                attributes["${SHELTER_JUNIT_ATTRIBUTES["$key"]}"]="$value"
+                attributes["${ATTRIBUTE_MAP["$key"]}"]="$value"
                 ;;
             EXIT)
                 attributes[status]="$value"
@@ -727,17 +614,180 @@ _shelter_junit_formatter () {
                 ;;
             ASSERT)
                 flags[status]=failure
-                _shelter_junit_body_add_failure body "${value%% *}" "${value#* }"
+                output_body_add_failure body "${value%% *}" "${value#* }"
                 ;;
             STDOUT)
-                _shelter_junit_body_add_stdout body "$value"
+                output_body_add_stdout body "$value"
                 ;;
             STDERR)
-                _shelter_junit_body_add_stderr body "$value"
+                output_body_add_stderr body "$value"
                 ;;
         esac
 
     done
 
-    _shelter_junit_block_transition "$SHELTER_BLOCK_ROOT" block flags attributes body
+    _shelter_formatter_block_transition "$SHELTER_BLOCK_ROOT" block flags attributes body
+}
+
+## @fn shelter_junit_formatter ()
+## @brief Format output of the test runner as JUnit XML
+##
+## Examples
+##
+## @code{.sh}
+## {
+##     shelter_run_test_case foo
+##     shelter_run_test_case bar
+##     shelter_run_test_class SuccessfulTests test_good_
+##     shelter_run_test_class FailingTests test_bad_
+## } | shelter_junit_formatter
+## @endcode
+##
+## @code{.sh}
+## shelter_run_test_suite suite_1 | shelter_unit_formatter
+## @endcode
+shelter_junit_formatter () {
+    (
+        declare -rA ATTRIBUTE_MAP=(
+            [SUITES_ERRORS]=errors
+            [SUITES_FAILURES]=failures
+            [SUITES_NAME]=name
+            [SUITES_SKIPPED]=skipped
+            [SUITES_TESTS]=tests
+            [SUITES_TIME]=time
+            [SUITE_ERRORS]=errors
+            [SUITE_FAILURES]=failures
+            [SUITE_NAME]=name
+            [SUITE_SKIPPED]=skipped
+            [SUITE_TESTS]=tests
+            [SUITE_TIME]=time
+            [CMD]=name
+            [CLASS]=classname
+            [SKIPPED]=name
+            [TIME]=time
+        )
+
+        output_header () {
+            printf '<?xml version="1.0" encoding="UTF-8"?>\n'
+        }
+
+        xml_attributes () {
+            # shellcheck disable=SC2178
+            declare -n __attributes="$1"
+            declare item
+            declare -i first_item=1
+
+            [[ "${#__attributes[@]}" -gt 0 ]] || return 0
+
+            while read -r item; do
+                if [[ "$first_item" -eq 1 ]]; then
+                    first_item=0
+                else
+                    printf ' '
+                fi
+
+                printf '%s="%s"' "$item" "${__attributes["$item"]}"
+            done < <(for index in "${!__attributes[@]}"; do printf '%s\n' "$index"; done | sort)
+
+            printf '\n'
+        }
+
+        output_suites_open () {
+            declare attributes_var="$1"
+
+            printf '<testsuites %s>\n' "$(xml_attributes "$attributes_var")"
+        }
+
+        output_suite_open () {
+            declare attributes_var="$1"
+
+            printf '<testsuite %s>\n' "$(xml_attributes "$attributes_var")"
+        }
+
+        output_testcase_open () {
+            declare attributes_var="$1"
+
+            printf '<testcase %s>\n' "$(xml_attributes "$attributes_var")"
+        }
+
+        output_testcase_body () {
+            declare body_var="$1"
+
+            # shellcheck disable=SC2178
+            declare -n __body="$body_var"
+            declare item
+
+            [[ "${#__body[@]}" -gt 0 ]] || return 0
+
+            for item in "${__body[@]}"; do
+                printf '%s\n' "$item"
+            done
+        }
+
+        output_testcase_close () {
+            printf '</testcase>\n'
+        }
+
+        output_suites_close () {
+            printf '</testsuites>\n'
+        }
+
+        output_suite_close () {
+            printf '</testsuite>\n'
+        }
+
+        output_body_add_failure () {
+            declare body_var="$1"
+            declare type="$2"
+            declare message="$3"
+
+            # shellcheck disable=SC2178
+            declare -n __body="$body_var"
+            # shellcheck disable=SC2034
+            declare -A attributes=([type]="$type" [message]="$message")
+
+            __body+=("<failure $(xml_attributes attributes)></failure>")
+        }
+
+        output_body_add_skipped () {
+            declare body_var="$1"
+
+            # shellcheck disable=SC2178
+            declare -n __body="$body_var"
+
+            __body+=('<skipped></skipped>')
+        }
+
+        output_body_add_error () {
+            declare body_var="$1"
+
+            # shellcheck disable=SC2178
+            declare -n __body="$body_var"
+
+            __body+=('<error></error>')
+        }
+
+        output_body_add_stdout () {
+            declare body_var="$1"
+            declare message="$2"
+
+            # shellcheck disable=SC2178
+            declare -n __body="$body_var"
+
+            __body+=("<system-out>${message}</system-out>")
+        }
+
+        output_body_add_stderr () {
+            declare body_var="$1"
+            declare message="$2"
+
+            # shellcheck disable=SC2178
+            declare -n __body="$body_var"
+
+            __body+=("<system-err>${message}</system-err>")
+        }
+
+        _shelter_formatter
+
+    )
 }
