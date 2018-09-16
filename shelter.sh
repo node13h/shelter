@@ -595,7 +595,7 @@ _shelter_formatter () {
 
         case "$key" in
             SKIPPED)
-                output_body_add_skipped body
+                output_body_add_skipped
                 ;&
             SUITES_*|SUITE_*|CMD|CLASS|TIME)
                 attributes["${ATTRIBUTE_MAP["$key"]}"]="$value"
