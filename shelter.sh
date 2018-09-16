@@ -10,6 +10,30 @@
 
 set -euo pipefail
 
+declare -ri SHELTER_BLOCK_ROOT=0
+declare -ri SHELTER_BLOCK_SUITES=1
+declare -ri SHELTER_BLOCK_SUITE=2
+declare -ri SHELTER_BLOCK_TESTCASE=3
+
+declare -rA SHELTER_JUNIT_ATTRIBUTES=(
+    [SUITES_ERRORS]=errors
+    [SUITES_FAILURES]=failures
+    [SUITES_NAME]=name
+    [SUITES_SKIPPED]=skipped
+    [SUITES_TESTS]=tests
+    [SUITES_TIME]=time
+    [SUITE_ERRORS]=errors
+    [SUITE_FAILURES]=failures
+    [SUITE_NAME]=name
+    [SUITE_SKIPPED]=skipped
+    [SUITE_TESTS]=tests
+    [SUITE_TIME]=time
+    [CMD]=name
+    [CLASS]=classname
+    [SKIPPED]=name
+    [TIME]=time
+)
+
 ## @var SHELTER_SKIP_TEST_CASES
 ## @brief A list of test case commands to skip
 ## @details When set before executing test suites allows to skip
@@ -424,4 +448,296 @@ shelter_run_test_suites () {
         printf '0 SUITES_TIME %s\n' "$shelter_suites_time"
 
     } | sort -n | sed -u 's/^[0-9]\+ //'
+}
+
+_shelter_junit_header () {
+    printf '<?xml version="1.0" encoding="UTF-8"?>\n'
+}
+
+_shelter_xml_attributes () {
+    declare -n __attributes="$1"
+    declare item
+    declare -i first_item=1
+
+    [[ "${#__attributes[@]}" -gt 0 ]] || return 0
+
+    while read -r item; do
+        if [[ "$first_item" -eq 1 ]]; then
+            first_item=0
+        else
+            printf ' '
+        fi
+
+        printf '%s="%s"' "$item" "${__attributes["$item"]}"
+    done < <(for index in "${!__attributes[@]}"; do printf '%s\n' "$index"; done | sort)
+
+    printf '\n'
+}
+
+_shelter_junit_suites_open () {
+    declare attributes_var="$1"
+
+    printf '<testsuites %s>\n' "$(_shelter_xml_attributes "$attributes_var")"
+}
+
+_shelter_junit_suite_open () {
+    declare attributes_var="$1"
+
+    printf '<testsuite %s>\n' "$(_shelter_xml_attributes "$attributes_var")"
+}
+
+_shelter_junit_testcase_open () {
+    declare attributes_var="$1"
+
+    printf '<testcase %s>\n' "$(_shelter_xml_attributes "$attributes_var")"
+}
+
+_shelter_junit_testcase_body () {
+    declare body_var="$1"
+
+    declare -n __body="$body_var"
+    declare item
+
+    [[ "${#__body[@]}" -gt 0 ]] || return 0
+
+    for item in "${__body[@]}"; do
+        printf '%s\n' "$item"
+    done
+}
+
+_shelter_junit_testcase_close () {
+    printf '</testcase>\n'
+}
+
+_shelter_junit_suites_close () {
+    printf '</testsuites>\n'
+}
+
+_shelter_junit_suite_close () {
+    printf '</testsuite>\n'
+}
+
+_shelter_junit_body_add_failure () {
+    declare body_var="$1"
+    declare type="$2"
+    declare message="$3"
+
+    declare -n __body="$body_var"
+
+    declare -A attributes=([type]="$type" [message]="$message")
+
+    __body+=("<failure $(_shelter_xml_attributes attributes)></failure>")
+}
+
+# shellcheck disable=SC2178
+_shelter_junit_body_add_skipped () {
+    declare body_var="$1"
+
+    declare -n __body="$body_var"
+
+    __body+=('<skipped></skipped>')
+}
+
+# shellcheck disable=SC2178
+_shelter_junit_body_add_error () {
+    declare body_var="$1"
+
+    declare -n __body="$body_var"
+
+    __body+=('<error></error>')
+}
+
+# shellcheck disable=SC2178
+_shelter_junit_body_add_stdout () {
+    declare body_var="$1"
+    declare message="$2"
+
+    declare -n __body="$body_var"
+
+    __body+=("<system-out>${message}</system-out>")
+}
+
+# shellcheck disable=SC2178
+_shelter_junit_body_add_stderr () {
+    declare body_var="$1"
+    declare message="$2"
+
+    declare -n __body="$body_var"
+
+    __body+=("<system-err>${message}</system-err>")
+}
+
+# shellcheck disable=SC2154,SC2178
+_shelter_junit_block_transition () {
+    declare next_block="$1"
+    declare block_var="$2"
+    declare flags_var="$3"
+    declare attributes_var="$4"
+    declare body_var="$5"
+
+    declare -n __block="$block_var"
+    declare -n __flags="$flags_var"
+    declare -n __attributes="$attributes_var"
+    declare -n __body="$body_var"
+
+
+    case "$__block" in
+        "$SHELTER_BLOCK_ROOT")
+            case "$next_block" in
+                "$SHELTER_BLOCK_SUITES")
+                    __flags[suites]=1
+                    ;;
+                "$SHELTER_BLOCK_SUITE")
+                    __flags[suite]=1
+                    ;;
+            esac
+            ;;
+
+        "$SHELTER_BLOCK_SUITES")
+            _shelter_junit_suites_open "$attributes_var"
+
+            case "$next_block" in
+                "$SHELTER_BLOCK_ROOT")
+                    _shelter_junit_suites_close
+                    __flags[suites]=0
+                    ;;
+                "$SHELTER_BLOCK_SUITES")
+                    _shelter_junit_suites_close
+                    __flags[suites]=1
+                    ;;
+                "$SHELTER_BLOCK_SUITE")
+                    __flags[suite]=1
+                    ;;
+            esac
+            ;;
+
+        "$SHELTER_BLOCK_SUITE")
+            _shelter_junit_suite_open "$attributes_var"
+
+            case "$next_block" in
+                "$SHELTER_BLOCK_ROOT")
+                    _shelter_junit_suite_close
+                    __flags[suite]=0
+                    if [[ "${__flags[suites]:-0}" -eq 1 ]]; then
+                        _shelter_junit_suites_close
+                        __flags[suites]=0
+                    fi
+                    ;;
+                "$SHELTER_BLOCK_SUITES")
+                    _shelter_junit_suite_close
+                    __flags[suite]=0
+                    if [[ "${__flags[suites]:-0}" -eq 1 ]]; then
+                        _shelter_junit_suites_close
+                    fi
+                    ;;
+                "$SHELTER_BLOCK_SUITE")
+                    _shelter_junit_suite_close
+                    __flags[suite]=1
+                    ;;
+            esac
+            ;;
+
+        "$SHELTER_BLOCK_TESTCASE")
+
+            _shelter_junit_testcase_open "$attributes_var"
+            if [[ "${__flags[status]:-}" = error ]]; then
+                _shelter_junit_body_add_error "$body_var"
+            fi
+            _shelter_junit_testcase_body "$body_var"
+            _shelter_junit_testcase_close
+
+            case "$next_block" in
+                "$SHELTER_BLOCK_ROOT")
+                    if [[ "${__flags[suite]:-0}" -eq 1 ]]; then
+                        _shelter_junit_suite_close
+                        __flags[suite]=0
+                    fi
+                    if [[ "${__flags[suites]:-0}" -eq 1 ]]; then
+                        _shelter_junit_suites_close
+                        __flags[suites]=0
+                    fi
+                    ;;
+                "$SHELTER_BLOCK_SUITES")
+                    if [[ "${__flags[suite]:-0}" -eq 1 ]]; then
+                        _shelter_junit_suite_close
+                        __flags[suite]=0
+                    fi
+                    __flags[suite]=0
+                    if [[ "${__flags[suites]:-0}" -eq 1 ]]; then
+                        _shelter_junit_suites_close
+                    fi
+                    __flags[suites]=1
+                    ;;
+                "$SHELTER_BLOCK_SUITE")
+                    if [[ "${__flags[suite]:-0}" -eq 1 ]]; then
+                        _shelter_junit_suite_close
+                    fi
+                    __flags[suite]=1
+                    ;;
+            esac
+            ;;
+    esac
+
+    __block="$next_block"
+    __attributes=()
+    __body=()
+    unset '__flags[status]'
+}
+
+# shellcheck disable=SC2034
+_shelter_junit_formatter () {
+    declare block="$SHELTER_BLOCK_ROOT"
+
+    declare -A attributes=()
+    declare -a body=()
+    declare -A flags=()
+
+    _shelter_junit_header
+
+    while read -r key value; do
+
+        # Keys which are allowed to change the block
+        case "$key" in
+            SUITES_NAME)
+                _shelter_junit_block_transition "$SHELTER_BLOCK_SUITES" block flags attributes body
+                ;;
+            SUITE_NAME)
+                _shelter_junit_block_transition "$SHELTER_BLOCK_SUITE" block flags attributes body
+                ;;
+            CMD|SKIPPED)
+                _shelter_junit_block_transition "$SHELTER_BLOCK_TESTCASE" block flags attributes body
+                ;;
+        esac
+
+
+        case "$key" in
+            SKIPPED)
+                _shelter_junit_body_add_skipped body
+                ;&
+            SUITES_*|SUITE_*|CMD|CLASS|TIME)
+                attributes["${SHELTER_JUNIT_ATTRIBUTES["$key"]}"]="$value"
+                ;;
+            EXIT)
+                attributes[status]="$value"
+                if [[ "$value" -eq 0 ]]; then
+                    [[ "${flags[status]:-}" = failure ]] || flags[status]=success
+                else
+                    [[ "${flags[status]:-}" = failure ]] || flags[status]=error
+                fi
+                ;;
+            ASSERT)
+                flags[status]=failure
+                _shelter_junit_body_add_failure body "${value%% *}" "${value#* }"
+                ;;
+            STDOUT)
+                _shelter_junit_body_add_stdout body "$value"
+                ;;
+            STDERR)
+                _shelter_junit_body_add_stderr body "$value"
+                ;;
+        esac
+
+    done
+
+    _shelter_junit_block_transition "$SHELTER_BLOCK_ROOT" block flags attributes body
 }

@@ -374,6 +374,86 @@ SKIPPED cmd_4
 EOF
 )
 
+test_shelter_junit_formatter_suites () (
+    test_shelter_junit_formatter_suites_mock () {
+        cat <<"EOF"
+SUITES_NAME all
+SUITES_TIME 2.03
+SUITES_TESTS 6
+SUITES_FAILURES 1
+SUITES_ERRORS 1
+SUITE_NAME test_shelter_run_test_suites_suite_mock_1
+SUITE_TIME 1.52
+SUITE_TESTS 3
+SUITE_FAILURES 1
+SUITE_ERRORS 1
+SUITE_SKIPPED 0
+CMD cmd_1
+CLASS testclass
+TIME 0.01
+EXIT 0
+CMD cmd_2
+CLASS testclass
+TIME 1.5
+EXIT 1
+ENV VAR1 declare\ -i\ VAR1=\"31895\"
+ENV VAR2 declare\ VAR2=\"A\ String\"
+CMD cmd_3
+ASSERT some_assert_fn Assertion error!
+TIME 0.01
+EXIT 1
+STDERR Boom!
+STDERR Something went wrong
+SUITE_NAME test_shelter_run_test_suites_suite_mock_2
+SUITE_TIME 0.51
+SUITE_TESTS 3
+SUITE_FAILURES 0
+SUITE_ERRORS 0
+SUITE_SKIPPED 1
+CMD cmd_1
+TIME 0.01
+EXIT 0
+CMD cmd_4
+TIME 0.5
+EXIT 0
+STDOUT Standard output
+STDERR interleaved
+STDOUT with some standard error output
+SKIPPED cmd_5
+EOF
+    }
+    diff -du <(test_shelter_junit_formatter_suites_mock | _shelter_junit_formatter) - <<"EOF"
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites errors="1" failures="1" name="all" tests="6" time="2.03">
+<testsuite errors="1" failures="1" name="test_shelter_run_test_suites_suite_mock_1" skipped="0" tests="3" time="1.52">
+<testcase classname="testclass" name="cmd_1" status="0" time="0.01">
+</testcase>
+<testcase classname="testclass" name="cmd_2" status="1" time="1.5">
+<error></error>
+</testcase>
+<testcase name="cmd_3" status="1" time="0.01">
+<failure message="Assertion error!" type="some_assert_fn"></failure>
+<system-err>Boom!</system-err>
+<system-err>Something went wrong</system-err>
+</testcase>
+</testsuite>
+<testsuite errors="0" failures="0" name="test_shelter_run_test_suites_suite_mock_2" skipped="1" tests="3" time="0.51">
+<testcase name="cmd_1" status="0" time="0.01">
+</testcase>
+<testcase name="cmd_4" status="0" time="0.5">
+<system-out>Standard output</system-out>
+<system-err>interleaved</system-err>
+<system-out>with some standard error output</system-out>
+</testcase>
+<testcase name="cmd_5">
+<skipped></skipped>
+</testcase>
+</testsuite>
+</testsuites>
+EOF
+)
+
+
 # A very basic test runner to keep it simple while
 # testing the testing framework :)
 
