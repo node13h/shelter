@@ -445,120 +445,114 @@ shelter_run_test_suites () {
 # - output_body_add_error
 _shelter_formatter_block_transition () {
     declare next_block="$1"
-    declare block_var="$2"
-    declare flags_var="$3"
-    declare attributes_var="$4"
-    declare body_var="$5"
 
-    declare -n __block="$block_var"
-    declare -n __flags="$flags_var"
-    declare -n __attributes="$attributes_var"
-    declare -n __body="$body_var"
-
-
-    case "$__block" in
+    case "$block" in
         "$SHELTER_BLOCK_ROOT")
             case "$next_block" in
                 "$SHELTER_BLOCK_SUITES")
                     # shellcheck disable=SC2154
-                    __flags[suites]=1
+                    flags[suites]=1
                     ;;
                 "$SHELTER_BLOCK_SUITE")
                     # shellcheck disable=SC2154
-                    __flags[suite]=1
+                    flags[suite]=1
                     ;;
             esac
             ;;
 
         "$SHELTER_BLOCK_SUITES")
-            output_suites_open "$attributes_var"
+            output_suites_open
 
             case "$next_block" in
                 "$SHELTER_BLOCK_ROOT")
                     output_suites_close
-                    __flags[suites]=0
+                    flags[suites]=0
                     ;;
                 "$SHELTER_BLOCK_SUITES")
                     output_suites_close
-                    __flags[suites]=1
+                    flags[suites]=1
                     ;;
                 "$SHELTER_BLOCK_SUITE")
-                    __flags[suite]=1
+                    flags[suite]=1
                     ;;
             esac
             ;;
 
         "$SHELTER_BLOCK_SUITE")
-            output_suite_open "$attributes_var"
+            output_suite_open
 
             case "$next_block" in
                 "$SHELTER_BLOCK_ROOT")
                     output_suite_close
-                    __flags[suite]=0
-                    if [[ "${__flags[suites]:-0}" -eq 1 ]]; then
+                    flags[suite]=0
+                    if [[ "${flags[suites]:-0}" -eq 1 ]]; then
                         output_suites_close
-                        __flags[suites]=0
+                        flags[suites]=0
                     fi
                     ;;
                 "$SHELTER_BLOCK_SUITES")
                     output_suite_close
-                    __flags[suite]=0
-                    if [[ "${__flags[suites]:-0}" -eq 1 ]]; then
+                    flags[suite]=0
+                    if [[ "${flags[suites]:-0}" -eq 1 ]]; then
                         output_suites_close
                     fi
                     ;;
                 "$SHELTER_BLOCK_SUITE")
                     output_suite_close
-                    __flags[suite]=1
+                    flags[suite]=1
                     ;;
             esac
             ;;
 
         "$SHELTER_BLOCK_TESTCASE")
 
-            output_testcase_open "$attributes_var"
-            if [[ "${__flags[status]:-}" = error ]]; then
-                output_body_add_error "$body_var"
+            output_testcase_open
+            if [[ "${flags[status]:-}" = error ]]; then
+                output_body_add_error
             fi
-            output_testcase_body "$body_var"
+            output_testcase_body
+            output_testcase_stdout
+            output_testcase_stderr
             output_testcase_close
 
             case "$next_block" in
                 "$SHELTER_BLOCK_ROOT")
-                    if [[ "${__flags[suite]:-0}" -eq 1 ]]; then
+                    if [[ "${flags[suite]:-0}" -eq 1 ]]; then
                         output_suite_close
-                        __flags[suite]=0
+                        flags[suite]=0
                     fi
-                    if [[ "${__flags[suites]:-0}" -eq 1 ]]; then
+                    if [[ "${flags[suites]:-0}" -eq 1 ]]; then
                         output_suites_close
-                        __flags[suites]=0
+                        flags[suites]=0
                     fi
                     ;;
                 "$SHELTER_BLOCK_SUITES")
-                    if [[ "${__flags[suite]:-0}" -eq 1 ]]; then
+                    if [[ "${flags[suite]:-0}" -eq 1 ]]; then
                         output_suite_close
-                        __flags[suite]=0
+                        flags[suite]=0
                     fi
-                    __flags[suite]=0
-                    if [[ "${__flags[suites]:-0}" -eq 1 ]]; then
+                    flags[suite]=0
+                    if [[ "${flags[suites]:-0}" -eq 1 ]]; then
                         output_suites_close
                     fi
-                    __flags[suites]=1
+                    flags[suites]=1
                     ;;
                 "$SHELTER_BLOCK_SUITE")
-                    if [[ "${__flags[suite]:-0}" -eq 1 ]]; then
+                    if [[ "${flags[suite]:-0}" -eq 1 ]]; then
                         output_suite_close
                     fi
-                    __flags[suite]=1
+                    flags[suite]=1
                     ;;
             esac
             ;;
     esac
 
-    __block="$next_block"
-    __attributes=()
-    __body=()
-    unset '__flags[status]'
+    block="$next_block"
+    attributes=()
+    body=()
+    stdout=()
+    stderr=()
+    unset 'flags[status]'
 }
 
 # This function is used internally as a
@@ -577,6 +571,8 @@ _shelter_formatter () {
     declare -A attributes=()
     # shellcheck disable=SC2034
     declare -a body=()
+    declare -a stdout=()
+    declare -a stderr=()
     declare -A flags=()
 
     output_header
@@ -586,13 +582,13 @@ _shelter_formatter () {
         # Keys which are allowed to change the block
         case "$key" in
             SUITES_NAME)
-                _shelter_formatter_block_transition "$SHELTER_BLOCK_SUITES" block flags attributes body
+                _shelter_formatter_block_transition "$SHELTER_BLOCK_SUITES"
                 ;;
             SUITE_NAME)
-                _shelter_formatter_block_transition "$SHELTER_BLOCK_SUITE" block flags attributes body
+                _shelter_formatter_block_transition "$SHELTER_BLOCK_SUITE"
                 ;;
             CMD|SKIPPED)
-                _shelter_formatter_block_transition "$SHELTER_BLOCK_TESTCASE" block flags attributes body
+                _shelter_formatter_block_transition "$SHELTER_BLOCK_TESTCASE"
                 ;;
         esac
 
@@ -614,19 +610,19 @@ _shelter_formatter () {
                 ;;
             ASSERT)
                 flags[status]=failure
-                output_body_add_failure body "${value%% *}" "${value#* }"
+                output_body_add_failure "${value%% *}" "${value#* }"
                 ;;
             STDOUT)
-                output_body_add_stdout body "$value"
+                output_stdout_add_line "$value"
                 ;;
             STDERR)
-                output_body_add_stderr body "$value"
+                output_stderr_add_line "$value"
                 ;;
         esac
 
     done
 
-    _shelter_formatter_block_transition "$SHELTER_BLOCK_ROOT" block flags attributes body
+    _shelter_formatter_block_transition "$SHELTER_BLOCK_ROOT"
 }
 
 ## @fn shelter_junit_formatter ()
@@ -680,12 +676,10 @@ shelter_junit_formatter () {
         }
 
         xml_attributes () {
-            # shellcheck disable=SC2178
-            declare -n __attributes="$1"
             declare item
             declare -i first_item=1
 
-            [[ "${#__attributes[@]}" -gt 0 ]] || return 0
+            [[ "${#attributes[@]}" -gt 0 ]] || return 0
 
             while read -r item; do
                 if [[ "$first_item" -eq 1 ]]; then
@@ -694,41 +688,51 @@ shelter_junit_formatter () {
                     printf ' '
                 fi
 
-                printf '%s="%s"' "$item" "$(xml_escaped <<< "${__attributes["$item"]}")"
-            done < <(for index in "${!__attributes[@]}"; do printf '%s\n' "$index"; done | sort)
+                printf '%s="%s"' "$item" "$(xml_escaped <<< "${attributes["$item"]}")"
+            done < <(for index in "${!attributes[@]}"; do printf '%s\n' "$index"; done | sort)
 
             printf '\n'
         }
 
         output_suites_open () {
-            declare attributes_var="$1"
-
-            printf '<testsuites %s>\n' "$(xml_attributes "$attributes_var")"
+            printf '<testsuites %s>\n' "$(xml_attributes attributes)"
         }
 
         output_suite_open () {
-            declare attributes_var="$1"
-
-            printf '<testsuite %s>\n' "$(xml_attributes "$attributes_var")"
+            printf '<testsuite %s>\n' "$(xml_attributes attributes)"
         }
 
         output_testcase_open () {
-            declare attributes_var="$1"
-
-            printf '<testcase %s>\n' "$(xml_attributes "$attributes_var")"
+            printf '<testcase %s>\n' "$(xml_attributes attributes)"
         }
 
         output_testcase_body () {
-            declare body_var="$1"
-
-            # shellcheck disable=SC2178
-            declare -n __body="$body_var"
             declare item
 
-            [[ "${#__body[@]}" -gt 0 ]] || return 0
+            [[ "${#body[@]}" -gt 0 ]] || return 0
 
-            for item in "${__body[@]}"; do
+            for item in "${body[@]}"; do
                 printf '%s\n' "$item"
+            done
+        }
+
+        output_testcase_stdout () {
+            declare item
+
+            [[ "${#stdout[@]}" -gt 0 ]] || return 0
+
+            for item in "${stdout[@]}"; do
+                printf '<system-out>%s</system-out>\n' "$(xml_escaped <<< "${item}")"
+            done
+        }
+
+        output_testcase_stderr () {
+            declare item
+
+            [[ "${#stderr[@]}" -gt 0 ]] || return 0
+
+            for item in "${stderr[@]}"; do
+                printf '<system-err>%s</system-err>\n' "$(xml_escaped <<< "${item}")"
             done
         }
 
@@ -745,54 +749,33 @@ shelter_junit_formatter () {
         }
 
         output_body_add_failure () {
-            declare body_var="$1"
-            declare type="$2"
-            declare message="$3"
+            declare type="$1"
+            declare message="$2"
 
-            # shellcheck disable=SC2178
-            declare -n __body="$body_var"
             # shellcheck disable=SC2034
             declare -A attributes=([type]="$type" [message]="$message")
 
-            __body+=("<failure $(xml_attributes attributes)></failure>")
+            body+=("<failure $(xml_attributes attributes)></failure>")
         }
 
         output_body_add_skipped () {
-            declare body_var="$1"
-
-            # shellcheck disable=SC2178
-            declare -n __body="$body_var"
-
-            __body+=('<skipped></skipped>')
+            body+=('<skipped></skipped>')
         }
 
         output_body_add_error () {
-            declare body_var="$1"
-
-            # shellcheck disable=SC2178
-            declare -n __body="$body_var"
-
-            __body+=('<error></error>')
+            body+=('<error></error>')
         }
 
-        output_body_add_stdout () {
-            declare body_var="$1"
-            declare message="$2"
+        output_stdout_add_line () {
+            declare message="$1"
 
-            # shellcheck disable=SC2178
-            declare -n __body="$body_var"
-
-            __body+=("<system-out>$(xml_escaped <<< "${message}")</system-out>")
+            stdout+=("$message")
         }
 
-        output_body_add_stderr () {
-            declare body_var="$1"
-            declare message="$2"
+        output_stderr_add_line () {
+            declare message="$1"
 
-            # shellcheck disable=SC2178
-            declare -n __body="$body_var"
-
-            __body+=("<system-err>$(xml_escaped <<< "${message}")</system-err>")
+            stderr+=("$message")
         }
 
         _shelter_formatter

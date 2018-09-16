@@ -402,8 +402,8 @@ CMD cmd_3
 ASSERT some_assert_fn Assertion error!
 TIME 0.01
 EXIT 1
-STDERR Boom!
-STDERR Something went wrong :<
+STDERR 1 Boom!
+STDERR 2 Something went wrong :<
 SUITE_NAME test_shelter_run_test_suites_suite_mock_2
 SUITE_TIME 0.51
 SUITE_TESTS 3
@@ -416,9 +416,9 @@ EXIT 0
 CMD cmd_4
 TIME 0.5
 EXIT 0
-STDOUT Standard output
-STDERR interleaved;
-STDOUT with some "standard error" output
+STDOUT 1 Standard output
+STDERR 2 interleaved;
+STDOUT 3 with some "standard error" output
 SKIPPED cmd_5
 EOF
     }
@@ -433,17 +433,17 @@ EOF
 </testcase>
 <testcase name="cmd_3" status="1" time="0.01">
 <failure message="Assertion error!" type="some_assert_fn"></failure>
-<system-err>Boom!</system-err>
-<system-err>Something went wrong :&lt;</system-err>
+<system-err>1 Boom!</system-err>
+<system-err>2 Something went wrong :&lt;</system-err>
 </testcase>
 </testsuite>
 <testsuite errors="0" failures="0" name="test_shelter_run_test_suites_suite_mock_2" skipped="1" tests="3" time="0.51">
 <testcase name="cmd_1" status="0" time="0.01">
 </testcase>
 <testcase name="cmd_4" status="0" time="0.5">
-<system-out>Standard output</system-out>
-<system-err>interleaved;</system-err>
-<system-out>with some &quot;standard error&quot; output</system-out>
+<system-out>1 Standard output</system-out>
+<system-out>3 with some &quot;standard error&quot; output</system-out>
+<system-err>2 interleaved;</system-err>
 </testcase>
 <testcase name="cmd_5">
 <skipped></skipped>
@@ -476,8 +476,8 @@ CMD cmd_3
 ASSERT some_assert_fn Assertion error!
 TIME 0.01
 EXIT 1
-STDERR Boom!
-STDERR Something went wrong :<
+STDERR 1 Boom!
+STDERR 2 Something went wrong :<
 EOF
     }
     diff -du <(test_shelter_junit_formatter_suites_mock | shelter_junit_formatter) - <<"EOF"
@@ -490,8 +490,8 @@ EOF
 </testcase>
 <testcase name="cmd_3" status="1" time="0.01">
 <failure message="Assertion error!" type="some_assert_fn"></failure>
-<system-err>Boom!</system-err>
-<system-err>Something went wrong :&lt;</system-err>
+<system-err>1 Boom!</system-err>
+<system-err>2 Something went wrong :&lt;</system-err>
 </testcase>
 </testsuite>
 EOF
@@ -506,16 +506,16 @@ ENV VAR2 declare\ VAR2=\"A\ String\"
 ASSERT some_assert_fn Assertion error!
 TIME 0.01
 EXIT 1
-STDERR Boom!
-STDERR Something went wrong :<
+STDERR 1 Boom!
+STDERR 2 Something went wrong :<
 EOF
     }
     diff -du <(test_shelter_junit_formatter_suites_mock | shelter_junit_formatter) - <<"EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 <testcase name="cmd_3" status="1" time="0.01">
 <failure message="Assertion error!" type="some_assert_fn"></failure>
-<system-err>Boom!</system-err>
-<system-err>Something went wrong :&lt;</system-err>
+<system-err>1 Boom!</system-err>
+<system-err>2 Something went wrong :&lt;</system-err>
 </testcase>
 EOF
 )
