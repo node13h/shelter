@@ -434,7 +434,7 @@ shelter_run_test_suites () {
 # This function is used internally to handle
 # transitions between blocks while parsing
 # It may only be used in an environment which defines the
-# follwing functions:
+# following functions:
 # - output_suites_open
 # - output_suites_close
 # - output_suite_open
@@ -558,12 +558,12 @@ _shelter_formatter_block_transition () {
 # This function is used internally as a
 # generic formatter
 # It may only be used in an environment which defines the
-# follwing functions:
+# following functions:
 # - output_header
 # - output_body_add_skipped
 # - output_body_add_failure
-# - output_body_add_stdout
-# - output_body_add_stderr
+# - output_stdout_add_line
+# - output_stdout_add_line
 _shelter_formatter () {
     # shellcheck disable=SC2034
     declare block="$SHELTER_BLOCK_ROOT"
