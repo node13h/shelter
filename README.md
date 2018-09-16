@@ -43,7 +43,8 @@
 
 ## Highlights
 
-- Machine-readable output (JUnit XML output format coming soon!)
+- Machine-readable output
+- JUnit XML output format support
 - Environment is captured
 - STDOUT and STDERR are captured
 - Test case, class, suite support
@@ -86,9 +87,36 @@ suite_1 () {
     shelter_run_test_class FailingTests test_bad_
 }
 
-shelter_run_test_suite suite_1
+shelter_run_test_suite suite_1 | shelter_junit_formatter
 ```
 
+Output:
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="suite_1" skipped="0" tests="6" time="0.038">
+<testcase name="foo" status="0" time="0.007">
+</testcase>
+<testcase name="bar" status="0" time="0.006">
+</testcase>
+<testcase classname="SuccessfulTests" name="test_good_hello" status="0" time="0.006">
+</testcase>
+<testcase classname="SuccessfulTests" name="test_good_world" status="0" time="0.006">
+</testcase>
+<testcase classname="FailingTests" name="test_bad_exit" status="1" time="0.006">
+<failure message="&quot;false&quot; failed" type="assert_success"></failure>
+</testcase>
+<testcase classname="FailingTests" name="test_bad_stdout" status="1" time="0.007">
+<failure message="STDOUT of &quot;echo TEST&quot; does not match the contents of &quot;-&quot;" type="assert_stdout"></failure>
+<system-out>
+1 --- /dev/fd/58	2018-09-16 20:38:05.288620927 +0100
+2 +++ -	2018-09-16 20:38:05.290110136 +0100
+3 @@ -1 +1 @@
+4 -TEST
+5 +FAIL
+</system-out>
+</testcase>
+</testsuite>
+```
 
 ## Installing
 

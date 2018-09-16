@@ -10,6 +10,11 @@
 
 set -euo pipefail
 
+declare -ri SHELTER_BLOCK_ROOT=0
+declare -ri SHELTER_BLOCK_SUITES=1
+declare -ri SHELTER_BLOCK_SUITE=2
+declare -ri SHELTER_BLOCK_TESTCASE=3
+
 ## @var SHELTER_SKIP_TEST_CASES
 ## @brief A list of test case commands to skip
 ## @details When set before executing test suites allows to skip
@@ -424,4 +429,360 @@ shelter_run_test_suites () {
         printf '0 SUITES_TIME %s\n' "$shelter_suites_time"
 
     } | sort -n | sed -u 's/^[0-9]\+ //'
+}
+
+# This function is used internally to handle
+# transitions between blocks while parsing
+# It may only be used in an environment which defines the
+# follwing functions:
+# - output_suites_open
+# - output_suites_close
+# - output_suite_open
+# - output_suite_close
+# - output_testcase_open
+# - output_testcase_body
+# - output_testcase_close
+# - output_body_add_error
+_shelter_formatter_block_transition () {
+    declare next_block="$1"
+
+    case "$block" in
+        "$SHELTER_BLOCK_ROOT")
+            case "$next_block" in
+                "$SHELTER_BLOCK_SUITES")
+                    # shellcheck disable=SC2154
+                    flags[suites]=1
+                    ;;
+                "$SHELTER_BLOCK_SUITE")
+                    # shellcheck disable=SC2154
+                    flags[suite]=1
+                    ;;
+            esac
+            ;;
+
+        "$SHELTER_BLOCK_SUITES")
+            output_suites_open
+
+            case "$next_block" in
+                "$SHELTER_BLOCK_ROOT")
+                    output_suites_close
+                    flags[suites]=0
+                    ;;
+                "$SHELTER_BLOCK_SUITES")
+                    output_suites_close
+                    flags[suites]=1
+                    ;;
+                "$SHELTER_BLOCK_SUITE")
+                    flags[suite]=1
+                    ;;
+            esac
+            ;;
+
+        "$SHELTER_BLOCK_SUITE")
+            output_suite_open
+
+            case "$next_block" in
+                "$SHELTER_BLOCK_ROOT")
+                    output_suite_close
+                    flags[suite]=0
+                    if [[ "${flags[suites]:-0}" -eq 1 ]]; then
+                        output_suites_close
+                        flags[suites]=0
+                    fi
+                    ;;
+                "$SHELTER_BLOCK_SUITES")
+                    output_suite_close
+                    flags[suite]=0
+                    if [[ "${flags[suites]:-0}" -eq 1 ]]; then
+                        output_suites_close
+                    fi
+                    ;;
+                "$SHELTER_BLOCK_SUITE")
+                    output_suite_close
+                    flags[suite]=1
+                    ;;
+            esac
+            ;;
+
+        "$SHELTER_BLOCK_TESTCASE")
+
+            output_testcase_open
+            if [[ "${flags[status]:-}" = error ]]; then
+                output_body_add_error
+            fi
+            output_testcase_body
+            output_testcase_stdout
+            output_testcase_stderr
+            output_testcase_close
+
+            case "$next_block" in
+                "$SHELTER_BLOCK_ROOT")
+                    if [[ "${flags[suite]:-0}" -eq 1 ]]; then
+                        output_suite_close
+                        flags[suite]=0
+                    fi
+                    if [[ "${flags[suites]:-0}" -eq 1 ]]; then
+                        output_suites_close
+                        flags[suites]=0
+                    fi
+                    ;;
+                "$SHELTER_BLOCK_SUITES")
+                    if [[ "${flags[suite]:-0}" -eq 1 ]]; then
+                        output_suite_close
+                        flags[suite]=0
+                    fi
+                    flags[suite]=0
+                    if [[ "${flags[suites]:-0}" -eq 1 ]]; then
+                        output_suites_close
+                    fi
+                    flags[suites]=1
+                    ;;
+                "$SHELTER_BLOCK_SUITE")
+                    if [[ "${flags[suite]:-0}" -eq 1 ]]; then
+                        output_suite_close
+                    fi
+                    flags[suite]=1
+                    ;;
+            esac
+            ;;
+    esac
+
+    block="$next_block"
+    attributes=()
+    body=()
+    stdout=()
+    stderr=()
+    unset 'flags[status]'
+}
+
+# This function is used internally as a
+# generic formatter
+# It may only be used in an environment which defines the
+# follwing functions:
+# - output_header
+# - output_body_add_skipped
+# - output_body_add_failure
+# - output_body_add_stdout
+# - output_body_add_stderr
+_shelter_formatter () {
+    # shellcheck disable=SC2034
+    declare block="$SHELTER_BLOCK_ROOT"
+
+    declare -A attributes=()
+    # shellcheck disable=SC2034
+    declare -a body=()
+    declare -a stdout=()
+    declare -a stderr=()
+    declare -A flags=()
+
+    output_header
+
+    while read -r key value; do
+
+        # Keys which are allowed to change the block
+        case "$key" in
+            SUITES_NAME)
+                _shelter_formatter_block_transition "$SHELTER_BLOCK_SUITES"
+                ;;
+            SUITE_NAME)
+                _shelter_formatter_block_transition "$SHELTER_BLOCK_SUITE"
+                ;;
+            CMD|SKIPPED)
+                _shelter_formatter_block_transition "$SHELTER_BLOCK_TESTCASE"
+                ;;
+        esac
+
+
+        case "$key" in
+            SKIPPED)
+                output_body_add_skipped body
+                ;&
+            SUITES_*|SUITE_*|CMD|CLASS|TIME)
+                attributes["${ATTRIBUTE_MAP["$key"]}"]="$value"
+                ;;
+            EXIT)
+                attributes[status]="$value"
+                if [[ "$value" -eq 0 ]]; then
+                    [[ "${flags[status]:-}" = failure ]] || flags[status]=success
+                else
+                    [[ "${flags[status]:-}" = failure ]] || flags[status]=error
+                fi
+                ;;
+            ASSERT)
+                flags[status]=failure
+                output_body_add_failure "${value%% *}" "${value#* }"
+                ;;
+            STDOUT)
+                output_stdout_add_line "$value"
+                ;;
+            STDERR)
+                output_stderr_add_line "$value"
+                ;;
+        esac
+
+    done
+
+    _shelter_formatter_block_transition "$SHELTER_BLOCK_ROOT"
+}
+
+## @fn shelter_junit_formatter ()
+## @brief Format output of the test runner as JUnit XML
+##
+## Examples
+##
+## @code{.sh}
+## {
+##     shelter_run_test_case foo
+##     shelter_run_test_case bar
+##     shelter_run_test_class SuccessfulTests test_good_
+##     shelter_run_test_class FailingTests test_bad_
+## } | shelter_junit_formatter
+## @endcode
+##
+## @code{.sh}
+## shelter_run_test_suite suite_1 | shelter_unit_formatter
+## @endcode
+shelter_junit_formatter () {
+    (
+        declare -rA ATTRIBUTE_MAP=(
+            [SUITES_ERRORS]=errors
+            [SUITES_FAILURES]=failures
+            [SUITES_NAME]=name
+            [SUITES_SKIPPED]=skipped
+            [SUITES_TESTS]=tests
+            [SUITES_TIME]=time
+            [SUITE_ERRORS]=errors
+            [SUITE_FAILURES]=failures
+            [SUITE_NAME]=name
+            [SUITE_SKIPPED]=skipped
+            [SUITE_TESTS]=tests
+            [SUITE_TIME]=time
+            [CMD]=name
+            [CLASS]=classname
+            [SKIPPED]=name
+            [TIME]=time
+        )
+
+        output_header () {
+            printf '<?xml version="1.0" encoding="UTF-8"?>\n'
+        }
+
+        xml_escaped () {
+            sed -e 's/\&/\&amp;/g' \
+                -e 's/</\&lt;/g' \
+                -e 's/>/\&gt;/g' \
+                -e 's/"/\&quot;/g' \
+                -e "s/'/\\&apos;/g"
+        }
+
+        xml_attributes () {
+            declare item
+            declare -i first_item=1
+
+            [[ "${#attributes[@]}" -gt 0 ]] || return 0
+
+            while read -r item; do
+                if [[ "$first_item" -eq 1 ]]; then
+                    first_item=0
+                else
+                    printf ' '
+                fi
+
+                printf '%s="%s"' "$item" "$(xml_escaped <<< "${attributes["$item"]}")"
+            done < <(for index in "${!attributes[@]}"; do printf '%s\n' "$index"; done | sort)
+
+            printf '\n'
+        }
+
+        output_suites_open () {
+            printf '<testsuites %s>\n' "$(xml_attributes attributes)"
+        }
+
+        output_suite_open () {
+            printf '<testsuite %s>\n' "$(xml_attributes attributes)"
+        }
+
+        output_testcase_open () {
+            printf '<testcase %s>\n' "$(xml_attributes attributes)"
+        }
+
+        output_testcase_body () {
+            declare item
+
+            [[ "${#body[@]}" -gt 0 ]] || return 0
+
+            for item in "${body[@]}"; do
+                printf '%s\n' "$item"
+            done
+        }
+
+        output_testcase_stdout () {
+            declare item
+
+            [[ "${#stdout[@]}" -gt 0 ]] || return 0
+
+            printf '<system-out>\n'
+            for item in "${stdout[@]}"; do
+                printf '%s\n' "$(xml_escaped <<< "${item}")"
+            done
+            printf '</system-out>\n'
+        }
+
+        output_testcase_stderr () {
+            declare item
+
+            [[ "${#stderr[@]}" -gt 0 ]] || return 0
+
+            printf '<system-err>\n'
+            for item in "${stderr[@]}"; do
+                printf '%s\n' "$(xml_escaped <<< "${item}")"
+            done
+            printf '</system-err>\n'
+        }
+
+        output_testcase_close () {
+            printf '</testcase>\n'
+        }
+
+        output_suites_close () {
+            printf '</testsuites>\n'
+        }
+
+        output_suite_close () {
+            printf '</testsuite>\n'
+        }
+
+        output_body_add_failure () {
+            declare type="$1"
+            declare message="$2"
+
+            # shellcheck disable=SC2034
+            declare -A attributes=([type]="$type" [message]="$message")
+
+            body+=("<failure $(xml_attributes attributes)></failure>")
+        }
+
+        output_body_add_skipped () {
+            body+=('<skipped></skipped>')
+        }
+
+        output_body_add_error () {
+            body+=('<error></error>')
+        }
+
+        output_stdout_add_line () {
+            declare message="$1"
+
+            stdout+=("$message")
+        }
+
+        output_stderr_add_line () {
+            declare message="$1"
+
+            stderr+=("$message")
+        }
+
+        _shelter_formatter
+
+    )
 }
