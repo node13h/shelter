@@ -695,15 +695,15 @@ shelter_junit_formatter () {
         }
 
         output_suites_open () {
-            printf '<testsuites %s>\n' "$(xml_attributes attributes)"
+            printf '<testsuites %s>\n' "$(xml_attributes)"
         }
 
         output_suite_open () {
-            printf '<testsuite %s>\n' "$(xml_attributes attributes)"
+            printf '<testsuite %s>\n' "$(xml_attributes)"
         }
 
         output_testcase_open () {
-            printf '<testcase %s>\n' "$(xml_attributes attributes)"
+            printf '<testcase %s>\n' "$(xml_attributes)"
         }
 
         output_testcase_body () {
@@ -759,7 +759,7 @@ shelter_junit_formatter () {
             # shellcheck disable=SC2034
             declare -A attributes=([type]="$type" [message]="$message")
 
-            body+=("<failure $(xml_attributes attributes)></failure>")
+            body+=("<failure $(xml_attributes)></failure>")
         }
 
         output_body_add_skipped () {
