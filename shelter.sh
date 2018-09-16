@@ -721,9 +721,11 @@ shelter_junit_formatter () {
 
             [[ "${#stdout[@]}" -gt 0 ]] || return 0
 
+            printf '<system-out>\n'
             for item in "${stdout[@]}"; do
-                printf '<system-out>%s</system-out>\n' "$(xml_escaped <<< "${item}")"
+                printf '%s\n' "$(xml_escaped <<< "${item}")"
             done
+            printf '</system-out>\n'
         }
 
         output_testcase_stderr () {
@@ -731,9 +733,11 @@ shelter_junit_formatter () {
 
             [[ "${#stderr[@]}" -gt 0 ]] || return 0
 
+            printf '<system-err>\n'
             for item in "${stderr[@]}"; do
-                printf '<system-err>%s</system-err>\n' "$(xml_escaped <<< "${item}")"
+                printf '%s\n' "$(xml_escaped <<< "${item}")"
             done
+            printf '</system-err>\n'
         }
 
         output_testcase_close () {

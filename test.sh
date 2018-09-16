@@ -433,17 +433,23 @@ EOF
 </testcase>
 <testcase name="cmd_3" status="1" time="0.01">
 <failure message="Assertion error!" type="some_assert_fn"></failure>
-<system-err>1 Boom!</system-err>
-<system-err>2 Something went wrong :&lt;</system-err>
+<system-err>
+1 Boom!
+2 Something went wrong :&lt;
+</system-err>
 </testcase>
 </testsuite>
 <testsuite errors="0" failures="0" name="test_shelter_run_test_suites_suite_mock_2" skipped="1" tests="3" time="0.51">
 <testcase name="cmd_1" status="0" time="0.01">
 </testcase>
 <testcase name="cmd_4" status="0" time="0.5">
-<system-out>1 Standard output</system-out>
-<system-out>3 with some &quot;standard error&quot; output</system-out>
-<system-err>2 interleaved;</system-err>
+<system-out>
+1 Standard output
+3 with some &quot;standard error&quot; output
+</system-out>
+<system-err>
+2 interleaved;
+</system-err>
 </testcase>
 <testcase name="cmd_5">
 <skipped></skipped>
@@ -490,8 +496,10 @@ EOF
 </testcase>
 <testcase name="cmd_3" status="1" time="0.01">
 <failure message="Assertion error!" type="some_assert_fn"></failure>
-<system-err>1 Boom!</system-err>
-<system-err>2 Something went wrong :&lt;</system-err>
+<system-err>
+1 Boom!
+2 Something went wrong :&lt;
+</system-err>
 </testcase>
 </testsuite>
 EOF
@@ -514,8 +522,10 @@ EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <testcase name="cmd_3" status="1" time="0.01">
 <failure message="Assertion error!" type="some_assert_fn"></failure>
-<system-err>1 Boom!</system-err>
-<system-err>2 Something went wrong :&lt;</system-err>
+<system-err>
+1 Boom!
+2 Something went wrong :&lt;
+</system-err>
 </testcase>
 EOF
 )
