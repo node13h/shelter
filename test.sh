@@ -453,6 +453,72 @@ EOF
 EOF
 )
 
+test_shelter_junit_formatter_suite () (
+    test_shelter_junit_formatter_suites_mock () {
+        cat <<"EOF"
+SUITE_NAME test_shelter_run_test_suites_suite_mock_1
+SUITE_TIME 1.52
+SUITE_TESTS 3
+SUITE_FAILURES 1
+SUITE_ERRORS 1
+SUITE_SKIPPED 0
+CMD cmd_1
+CLASS testclass
+TIME 0.01
+EXIT 0
+CMD cmd_2
+CLASS testclass
+TIME 1.5
+EXIT 1
+ENV VAR1 declare\ -i\ VAR1=\"31895\"
+ENV VAR2 declare\ VAR2=\"A\ String\"
+CMD cmd_3
+ASSERT some_assert_fn Assertion error!
+TIME 0.01
+EXIT 1
+STDERR Boom!
+STDERR Something went wrong :<
+EOF
+    }
+    diff -du <(test_shelter_junit_formatter_suites_mock | shelter_junit_formatter) - <<"EOF"
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite errors="1" failures="1" name="test_shelter_run_test_suites_suite_mock_1" skipped="0" tests="3" time="1.52">
+<testcase classname="testclass" name="cmd_1" status="0" time="0.01">
+</testcase>
+<testcase classname="testclass" name="cmd_2" status="1" time="1.5">
+<error></error>
+</testcase>
+<testcase name="cmd_3" status="1" time="0.01">
+<failure message="Assertion error!" type="some_assert_fn"></failure>
+<system-err>Boom!</system-err>
+<system-err>Something went wrong :&lt;</system-err>
+</testcase>
+</testsuite>
+EOF
+)
+
+test_shelter_junit_formatter_testcase () (
+    test_shelter_junit_formatter_suites_mock () {
+        cat <<"EOF"
+CMD cmd_3
+ENV VAR1 declare\ -i\ VAR1=\"31895\"
+ENV VAR2 declare\ VAR2=\"A\ String\"
+ASSERT some_assert_fn Assertion error!
+TIME 0.01
+EXIT 1
+STDERR Boom!
+STDERR Something went wrong :<
+EOF
+    }
+    diff -du <(test_shelter_junit_formatter_suites_mock | shelter_junit_formatter) - <<"EOF"
+<?xml version="1.0" encoding="UTF-8"?>
+<testcase name="cmd_3" status="1" time="0.01">
+<failure message="Assertion error!" type="some_assert_fn"></failure>
+<system-err>Boom!</system-err>
+<system-err>Something went wrong :&lt;</system-err>
+</testcase>
+EOF
+)
 
 # A very basic test runner to keep it simple while
 # testing the testing framework :)
