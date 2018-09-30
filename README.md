@@ -6,20 +6,24 @@
 - Writing your system compliance and acceptance tests in pure Bash. An alternative to ServerSpec/Inspec.
 
   ```bash
+  source shelter.sh
+
   test_service_sshd () {
-      assert_success 'systemctl is-active sshd'
+      assert_success 'systemctl -q is-active sshd'
   }
 
   test_service_ntpd () {
-      assert_success 'systemctl is-active ntpd'
+      assert_success 'systemctl -q is-active ntpd'
   }
 
-  shelter_run_test_class myservices test_service_
+  shelter_run_test_class myservices test_service_ | shelter_human_formatter
   ```
 
 - Writing unit-tests for your shell scripts and libraries
 
   ```bash
+  source shelter.sh
+
   add () {
       bc <<< "$1 + $2"
   }
@@ -37,7 +41,7 @@
   }
 
   set -u
-  shelter_run_test_class add test_add_
+  shelter_run_test_class add test_add_ | shelter_human_formatter
   ```
 
 
