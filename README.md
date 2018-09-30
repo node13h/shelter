@@ -121,7 +121,7 @@ Output:
 
 Running the same suite piped into `shelter_human_formatter` like this:
 ```bash
-shelter_run_test_suite suite_1 | shelter_junit_formatter
+shelter_run_test_suite suite_1 | shelter_human_formatter
 ```
 
 would output the following:
