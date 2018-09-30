@@ -530,6 +530,140 @@ EOF
 EOF
 )
 
+test_shelter_human_formatter_suites () (
+    test_shelter_human_formatter_suites_mock () {
+        cat <<"EOF"
+SUITES_NAME all
+SUITES_TIME 2.03
+SUITES_TESTS 6
+SUITES_FAILURES 1
+SUITES_ERRORS 1
+SUITE_NAME test_shelter_run_test_suites_suite_mock_1
+SUITE_TIME 1.52
+SUITE_TESTS 3
+SUITE_FAILURES 1
+SUITE_ERRORS 1
+SUITE_SKIPPED 0
+CMD cmd_1
+CLASS testclass
+TIME 0.01
+EXIT 0
+CMD cmd_2
+CLASS testclass
+TIME 1.5
+EXIT 1
+ENV VAR1 declare\ -i\ VAR1=\"31895\"
+ENV VAR2 declare\ VAR2=\"A\ String\"
+CMD cmd_3
+ASSERT some_assert_fn Assertion error!
+TIME 0.01
+EXIT 1
+STDERR 1 Boom!
+STDERR 2 Something went wrong :<
+SUITE_NAME test_shelter_run_test_suites_suite_mock_2
+SUITE_TIME 0.51
+SUITE_TESTS 3
+SUITE_FAILURES 0
+SUITE_ERRORS 0
+SUITE_SKIPPED 1
+CMD cmd_1
+TIME 0.01
+EXIT 0
+CMD cmd_4
+TIME 0.5
+EXIT 0
+STDOUT 1 Standard output
+STDERR 2 interleaved;
+STDOUT 3 with some "standard error" output
+SKIPPED cmd_5
+EOF
+    }
+    diff -du <(test_shelter_human_formatter_suites_mock | shelter_human_formatter) - <<"EOF"
+Suites: all
+
+ Suite: test_shelter_run_test_suites_suite_mock_1 (1.52s)
+
+  [[1;92m+[m] [1;97mtestclass/cmd_1[m (0.01s)
+  [[1;31mE[m] [1;97mtestclass/cmd_2[m (1.5s)
+  [[1;91mF[m] [1;97mcmd_3[m (0.01s)
+      [0;33mBoom![m
+      [0;33mSomething went wrong :<[m
+
+ Suite: test_shelter_run_test_suites_suite_mock_2 (0.51s)
+
+  [[1;92m+[m] [1;97mcmd_1[m (0.01s)
+  [[1;92m+[m] [1;97mcmd_4[m (0.5s)
+      [0;90mStandard output[m
+      [0;33minterleaved;[m
+      [0;90mwith some "standard error" output[m
+  [[1;90m-[m] [1;97mcmd_5[m
+
+Test results: 3 passed, 1 failed, 1 errors, 1 skipped
+EOF
+)
+
+test_shelter_human_formatter_suite () (
+    test_shelter_human_formatter_suites_mock () {
+        cat <<"EOF"
+SUITE_NAME test_shelter_run_test_suites_suite_mock_1
+SUITE_TIME 1.52
+SUITE_TESTS 3
+SUITE_FAILURES 1
+SUITE_ERRORS 1
+SUITE_SKIPPED 0
+CMD cmd_1
+CLASS testclass
+TIME 0.01
+EXIT 0
+CMD cmd_2
+CLASS testclass
+TIME 1.5
+EXIT 1
+ENV VAR1 declare\ -i\ VAR1=\"31895\"
+ENV VAR2 declare\ VAR2=\"A\ String\"
+CMD cmd_3
+ASSERT some_assert_fn Assertion error!
+TIME 0.01
+EXIT 1
+STDERR 1 Boom!
+STDERR 2 Something went wrong :<
+EOF
+    }
+    diff -du <(test_shelter_human_formatter_suites_mock | shelter_human_formatter) - <<"EOF"
+Suite: test_shelter_run_test_suites_suite_mock_1 (1.52s)
+
+ [[1;92m+[m] [1;97mtestclass/cmd_1[m (0.01s)
+ [[1;31mE[m] [1;97mtestclass/cmd_2[m (1.5s)
+ [[1;91mF[m] [1;97mcmd_3[m (0.01s)
+     [0;33mBoom![m
+     [0;33mSomething went wrong :<[m
+
+Test results: 1 passed, 1 failed, 1 errors, 0 skipped
+EOF
+)
+
+test_shelter_human_formatter_testcase () (
+    test_shelter_human_formatter_suites_mock () {
+        cat <<"EOF"
+CMD cmd_3
+ENV VAR1 declare\ -i\ VAR1=\"31895\"
+ENV VAR2 declare\ VAR2=\"A\ String\"
+ASSERT some_assert_fn Assertion error!
+TIME 0.01
+EXIT 1
+STDERR 1 Boom!
+STDERR 2 Something went wrong :<
+EOF
+    }
+    diff -du <(test_shelter_human_formatter_suites_mock | shelter_human_formatter) - <<"EOF"
+[[1;91mF[m] [1;97mcmd_3[m (0.01s)
+    [0;33mBoom![m
+    [0;33mSomething went wrong :<[m
+
+Test results: 0 passed, 1 failed, 0 errors, 0 skipped
+EOF
+)
+
 # A very basic test runner to keep it simple while
 # testing the testing framework :)
 

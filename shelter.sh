@@ -511,8 +511,6 @@ _shelter_formatter_block_transition () {
                 output_body_add_error
             fi
             output_testcase_body
-            output_testcase_stdout
-            output_testcase_stderr
             output_testcase_close
 
             case "$next_block" in
@@ -575,6 +573,8 @@ _shelter_formatter () {
     declare -a stderr=()
     declare -A flags=()
 
+    declare lineno line
+
     output_header
 
     while read -r key value; do
@@ -595,6 +595,7 @@ _shelter_formatter () {
 
         case "$key" in
             SKIPPED)
+                flags[status]=skipped
                 output_body_add_skipped
                 ;&
             SUITES_*|SUITE_*|CMD|CLASS|TIME)
@@ -613,18 +614,23 @@ _shelter_formatter () {
                 output_body_add_failure "${value%% *}" "${value#* }"
                 ;;
             STDOUT)
-                output_stdout_add_line "$value"
+                read -r lineno line <<< "$value"
+                stdout["$lineno"]="$line"
                 ;;
             STDERR)
-                output_stderr_add_line "$value"
+                read -r lineno line <<< "$value"
+                stderr["$lineno"]="$line"
                 ;;
         esac
 
     done
 
     _shelter_formatter_block_transition "$SHELTER_BLOCK_ROOT"
+
+    output_footer
 }
 
+# shellcheck disable=SC2030,SC2031
 ## @fn shelter_junit_formatter ()
 ## @brief Format output of the test runner as JUnit XML
 ##
@@ -709,33 +715,36 @@ shelter_junit_formatter () {
         output_testcase_body () {
             declare item
 
-            [[ "${#body[@]}" -gt 0 ]] || return 0
+            if [[ "${#body[@]}" -gt 0 ]]; then
+                for item in "${body[@]}"; do
+                    printf '%s\n' "$item"
+                done
+            fi
 
-            for item in "${body[@]}"; do
-                printf '%s\n' "$item"
-            done
+            output_testcase_stdout
+            output_testcase_stderr
         }
 
         output_testcase_stdout () {
-            declare item
+            declare -i i
 
             [[ "${#stdout[@]}" -gt 0 ]] || return 0
 
             printf '<system-out>\n'
-            for item in "${stdout[@]}"; do
-                printf '%s\n' "$(xml_escaped <<< "${item}")"
+            for i in "${!stdout[@]}"; do
+                printf '%s %s\n' "$i" "$(xml_escaped <<< "${stdout["$i"]}")"
             done
             printf '</system-out>\n'
         }
 
         output_testcase_stderr () {
-            declare item
+            declare -i i
 
             [[ "${#stderr[@]}" -gt 0 ]] || return 0
 
             printf '<system-err>\n'
-            for item in "${stderr[@]}"; do
-                printf '%s\n' "$(xml_escaped <<< "${item}")"
+            for i in "${!stderr[@]}"; do
+                printf '%s %s\n' "$i" "$(xml_escaped <<< "${stderr["$i"]}")"
             done
             printf '</system-err>\n'
         }
@@ -770,19 +779,175 @@ shelter_junit_formatter () {
             body+=('<error></error>')
         }
 
-        output_stdout_add_line () {
-            declare message="$1"
-
-            stdout+=("$message")
-        }
-
-        output_stderr_add_line () {
-            declare message="$1"
-
-            stderr+=("$message")
+        output_footer () {
+            true
         }
 
         _shelter_formatter
 
+    )
+}
+
+# shellcheck disable=SC2030,SC2031
+## @fn shelter_human_formatter ()
+## @brief Format output of the test runner in a human-friendly form
+##
+## Examples
+##
+## @code{.sh}
+## {
+##     shelter_run_test_case foo
+##     shelter_run_test_case bar
+##     shelter_run_test_class SuccessfulTests test_good_
+##     shelter_run_test_class FailingTests test_bad_
+## } | shelter_human_formatter
+## @endcode
+##
+## @code{.sh}
+## shelter_run_test_suite suite_1 | shelter_human_formatter
+## @endcode
+shelter_human_formatter () {
+    (
+        declare -rA ATTRIBUTE_MAP=(
+            [SUITES_ERRORS]=errors
+            [SUITES_FAILURES]=failures
+            [SUITES_NAME]=name
+            [SUITES_SKIPPED]=skipped
+            [SUITES_TESTS]=tests
+            [SUITES_TIME]=time
+            [SUITE_ERRORS]=errors
+            [SUITE_FAILURES]=failures
+            [SUITE_NAME]=name
+            [SUITE_SKIPPED]=skipped
+            [SUITE_TESTS]=tests
+            [SUITE_TIME]=time
+            [CMD]=name
+            [CLASS]=classname
+            [SKIPPED]=name
+            [TIME]=time
+        )
+
+        declare -rA STATUS_MAP=(
+            [success]='+'
+            [error]='E'
+            [failure]='F'
+            [skipped]='-'
+        )
+
+        declare -rA COLOUR_MAP=(
+            [success]=92
+            [error]=31
+            [failure]=91
+            [skipped]=90
+        )
+
+        declare -A TEST_RESULTS=(
+            [success]=0
+            [error]=0
+            [failure]=0
+            [skipped]=0
+        )
+
+        declare -i first_suite=1
+
+        indentation_level () {
+            declare -i level="$1"
+
+            declare -i i
+
+            for ((i=1; i<="$level"; i++)); do
+                printf ' '
+            done
+            printf '\n'
+        }
+
+        output_header () {
+            true
+        }
+
+        output_suites_open () {
+            printf 'Suites: %s\n\n' "${attributes[name]}"
+        }
+
+        output_suite_open () {
+            if [[ "$first_suite" -eq 1 ]]; then
+                first_suite=0
+            else
+                printf '\n'
+            fi
+
+            declare indent
+            indent=$(indentation_level "${flags[suites]:-0}")
+            printf '%sSuite: %s (%ss)\n\n' "$indent" "${attributes[name]}" "${attributes[time]}"
+        }
+
+        output_testcase_open () {
+            true
+        }
+
+        output_testcase_body () {
+            declare -i i=1
+            declare indent
+            indent=$(indentation_level $(("${flags[suites]:-0}" + "${flags[suite]:-0}")))
+
+            if ! [[ "${flags[status]}" = skipped ]]; then
+                printf '%s[\e[1;%sm%s\e[m] \e[1;97m%s\e[m (%ss)\n' \
+                       "$indent" \
+                       "${COLOUR_MAP["${flags[status]}"]}" \
+                       "${STATUS_MAP["${flags[status]}"]}" \
+                       "${attributes[classname]:+${attributes[classname]}/}${attributes[name]}" \
+                       "${attributes[time]}"
+            else
+                printf '%s[\e[1;%sm%s\e[m] \e[1;97m%s\e[m\n' \
+                       "$indent" \
+                       "${COLOUR_MAP["${flags[status]}"]}" \
+                       "${STATUS_MAP["${flags[status]}"]}" \
+                       "${attributes[classname]:+${attributes[classname]}/}${attributes[name]}"
+            fi
+
+            TEST_RESULTS["${flags[status]}"]=$((TEST_RESULTS["${flags[status]}"] + 1))
+
+            while true; do
+                if [[ "${stdout["$i"]+defined}" = 'defined' ]]; then
+                    printf '%s    \e[0;90m%s\e[m\n' "$indent" "${stdout["$i"]}"
+                elif [[ "${stderr["$i"]+defined}" = 'defined' ]]; then
+                    printf '%s    \e[0;33m%s\e[m\n' "$indent" "${stderr["$i"]}"
+                else
+                    break
+                fi
+
+                i=$((i+1))
+            done
+         }
+
+        output_testcase_close () {
+            true
+        }
+
+        output_suites_close () {
+            true
+        }
+
+        output_suite_close () {
+            true
+        }
+
+        output_body_add_failure () {
+            true
+        }
+
+        output_body_add_skipped () {
+            true
+        }
+
+        output_body_add_error () {
+            true
+        }
+
+        output_footer () {
+            printf '\nTest results: %d passed, %d failed, %d errors, %d skipped\n' "${TEST_RESULTS[success]}" "${TEST_RESULTS[failure]}" "${TEST_RESULTS[error]}" "${TEST_RESULTS[skipped]}"
+        }
+
+        _shelter_formatter
     )
 }
