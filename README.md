@@ -118,6 +118,32 @@ Output:
 </testsuite>
 ```
 
+
+Running the same suite piped into `shelter_human_formatter` like this:
+```bash
+shelter_run_test_suite suite_1 | shelter_junit_formatter
+```
+
+would output the following:
+
+<pre background="#202020">Suite: suite_1 (0.038s)
+
+ [<font color="#72D5A3"><b>+</b></font>] <font color="#FFFFFF"><b>foo</b></font> (0.007s)
+ [<font color="#72D5A3"><b>+</b></font>] <font color="#FFFFFF"><b>bar</b></font> (0.007s)
+ [<font color="#72D5A3"><b>+</b></font>] <font color="#FFFFFF"><b>SuccessfulTests/test_good_hello</b></font> (0.006s)
+ [<font color="#72D5A3"><b>+</b></font>] <font color="#FFFFFF"><b>SuccessfulTests/test_good_world</b></font> (0.007s)
+ [<font color="#DCA3A3"><b>F</b></font>] <font color="#FFFFFF"><b>FailingTests/test_bad_exit</b></font> (0.005s)
+ [<font color="#DCA3A3"><b>F</b></font>] <font color="#FFFFFF"><b>FailingTests/test_bad_stdout</b></font> (0.006s)
+     <font color="#919191">--- /dev/fd/58</font>	<font color="#919191">2018-09-30 14:59:10.268596042 +0100</font>
+     <font color="#919191">+++ -</font>	<font color="#919191">2018-09-30 14:59:10.269935606 +0100</font>
+     <font color="#919191">@@ -1 +1 @@</font>
+     <font color="#919191">-TEST</font>
+     <font color="#919191">+FAIL</font>
+
+Test results: 4 passed, 2 failed, 0 errors, 0 skipped
+</pre>
+
+
 ## Installing
 
 ### From source
