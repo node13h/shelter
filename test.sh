@@ -584,18 +584,26 @@ Suites: all
  Suite: test_shelter_run_test_suites_suite_mock_1 (1.52s)
 
   [[1;92m+[m] [1;97mtestclass/cmd_1[m (0.01s)
-  [[1;31mE[m] [1;97mtestclass/cmd_2[m (1.5s)
-  [[1;91mF[m] [1;97mcmd_3[m (0.01s)
+  [[1;31mE[m] [1;97mtestclass/cmd_2[m (exit [1;31m1[m) (1.5s)
+  [[1;91mF[m] [1;97mcmd_3[m (exit [1;31m1[m) (0.01s)
+      [1;91mAssertion error![m (some_assert_fn)
+
+      captured output:
+      ---------------
       [0;33mBoom![m
       [0;33mSomething went wrong :<[m
+
 
  Suite: test_shelter_run_test_suites_suite_mock_2 (0.51s)
 
   [[1;92m+[m] [1;97mcmd_1[m (0.01s)
   [[1;92m+[m] [1;97mcmd_4[m (0.5s)
+      captured output:
+      ---------------
       [0;90mStandard output[m
       [0;33minterleaved;[m
       [0;90mwith some "standard error" output[m
+
   [[1;90m-[m] [1;97mcmd_5[m
 
 Test results: 3 passed, 1 failed, 1 errors, 1 skipped
@@ -633,10 +641,15 @@ EOF
 Suite: test_shelter_run_test_suites_suite_mock_1 (1.52s)
 
  [[1;92m+[m] [1;97mtestclass/cmd_1[m (0.01s)
- [[1;31mE[m] [1;97mtestclass/cmd_2[m (1.5s)
- [[1;91mF[m] [1;97mcmd_3[m (0.01s)
+ [[1;31mE[m] [1;97mtestclass/cmd_2[m (exit [1;31m1[m) (1.5s)
+ [[1;91mF[m] [1;97mcmd_3[m (exit [1;31m1[m) (0.01s)
+     [1;91mAssertion error![m (some_assert_fn)
+
+     captured output:
+     ---------------
      [0;33mBoom![m
      [0;33mSomething went wrong :<[m
+
 
 Test results: 1 passed, 1 failed, 1 errors, 0 skipped
 EOF
@@ -656,9 +669,14 @@ STDERR 2 Something went wrong :<
 EOF
     }
     diff -du <(test_shelter_human_formatter_suites_mock | shelter_human_formatter) - <<"EOF"
-[[1;91mF[m] [1;97mcmd_3[m (0.01s)
+[[1;91mF[m] [1;97mcmd_3[m (exit [1;31m1[m) (0.01s)
+    [1;91mAssertion error![m (some_assert_fn)
+
+    captured output:
+    ---------------
     [0;33mBoom![m
     [0;33mSomething went wrong :<[m
+
 
 Test results: 0 passed, 1 failed, 0 errors, 0 skipped
 EOF

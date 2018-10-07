@@ -882,7 +882,29 @@ shelter_human_formatter () {
         }
 
         output_testcase_open () {
-            true
+            declare indent
+            indent=$(indentation_level $(("${flags[suites]:-0}" + "${flags[suite]:-0}")))
+
+            declare -a components=(
+                "$indent"
+                "${COLOUR_MAP["${flags[status]}"]}"
+                "${STATUS_MAP["${flags[status]}"]}"
+                "${attributes[classname]:+${attributes[classname]}/}${attributes[name]}"
+            )
+
+            if [[ -n "${attributes[status]:-}" && "${attributes[status]}" -gt 0 ]]; then
+                components+=(" (exit [1;31m${attributes[status]}[m)")
+            else
+                components+=('')
+            fi
+
+            if ! [[ "${flags[status]}" = 'skipped' ]]; then
+                components+=(" (${attributes[time]}s)")
+            else
+                components+=('')
+            fi
+
+            printf '%s[\e[1;%sm%s\e[m] \e[1;97m%s\e[m%s%s\n' "${components[@]}"
         }
 
         output_testcase_body () {
@@ -890,34 +912,33 @@ shelter_human_formatter () {
             declare indent
             indent=$(indentation_level $(("${flags[suites]:-0}" + "${flags[suite]:-0}")))
 
-            if ! [[ "${flags[status]}" = skipped ]]; then
-                printf '%s[\e[1;%sm%s\e[m] \e[1;97m%s\e[m (%ss)\n' \
-                       "$indent" \
-                       "${COLOUR_MAP["${flags[status]}"]}" \
-                       "${STATUS_MAP["${flags[status]}"]}" \
-                       "${attributes[classname]:+${attributes[classname]}/}${attributes[name]}" \
-                       "${attributes[time]}"
-            else
-                printf '%s[\e[1;%sm%s\e[m] \e[1;97m%s\e[m\n' \
-                       "$indent" \
-                       "${COLOUR_MAP["${flags[status]}"]}" \
-                       "${STATUS_MAP["${flags[status]}"]}" \
-                       "${attributes[classname]:+${attributes[classname]}/}${attributes[name]}"
+            declare item
+
+            if [[ "${#body[@]}" -gt 0 ]]; then
+                for item in "${body[@]}"; do
+                    printf '%s    %s\n' "$indent" "$item"
+                done
+                printf '\n'
             fi
 
             TEST_RESULTS["${flags[status]}"]=$((TEST_RESULTS["${flags[status]}"] + 1))
 
-            while true; do
-                if [[ "${stdout["$i"]+defined}" = 'defined' ]]; then
-                    printf '%s    \e[0;90m%s\e[m\n' "$indent" "${stdout["$i"]}"
-                elif [[ "${stderr["$i"]+defined}" = 'defined' ]]; then
-                    printf '%s    \e[0;33m%s\e[m\n' "$indent" "${stderr["$i"]}"
-                else
-                    break
-                fi
+            if [[ "${#stdout[@]}" -gt 0 || "${#stderr[@]}" -gt 0 ]]; then
+                printf '%s    captured output:\n' "$indent"
+                printf '%s    ---------------\n' "$indent"
+                while true; do
+                    if [[ "${stdout["$i"]+defined}" = 'defined' ]]; then
+                        printf '%s    \e[0;90m%s\e[m\n' "$indent" "${stdout["$i"]}"
+                    elif [[ "${stderr["$i"]+defined}" = 'defined' ]]; then
+                        printf '%s    \e[0;33m%s\e[m\n' "$indent" "${stderr["$i"]}"
+                    else
+                        break
+                    fi
 
-                i=$((i+1))
-            done
+                    i=$((i+1))
+                done
+                printf '\n'
+            fi
          }
 
         output_testcase_close () {
@@ -933,7 +954,10 @@ shelter_human_formatter () {
         }
 
         output_body_add_failure () {
-            true
+            declare type="$1"
+            declare message="$2"
+
+            body+=("[1;91m${message}[m (${type})")
         }
 
         output_body_add_skipped () {

@@ -148,19 +148,26 @@ shelter_run_test_suite suite_1 | shelter_human_formatter
 
 would output the following:
 
-<pre style="background: #202020; color: #eee"">Suite: suite_1 (0.034s)
+<pre style="background: #202020; color: #eee">Suite: suite_1 (0.045s)
 
- [<font color="#72D5A3"><b>+</b></font>] <font color="#FFFFFF"><b>foo</b></font> (0.005s)
- [<font color="#72D5A3"><b>+</b></font>] <font color="#FFFFFF"><b>bar</b></font> (0.005s)
- [<font color="#72D5A3"><b>+</b></font>] <font color="#FFFFFF"><b>SuccessfulTests/test_good_hello</b></font> (0.006s)
- [<font color="#72D5A3"><b>+</b></font>] <font color="#FFFFFF"><b>SuccessfulTests/test_good_world</b></font> (0.006s)
- [<font color="#DCA3A3"><b>F</b></font>] <font color="#FFFFFF"><b>FailingTests/test_bad_exit</b></font> (0.006s)
- [<font color="#DCA3A3"><b>F</b></font>] <font color="#FFFFFF"><b>FailingTests/test_bad_stdout</b></font> (0.006s)
-     <font color="#919191">--- /dev/fd/58</font>	<font color="#919191">2018-09-30 15:20:22.360521734 +0100</font>
-     <font color="#919191">+++ -</font>	<font color="#919191">2018-09-30 15:20:22.362604440 +0100</font>
+ [<font color="#72D5A3"><b>+</b></font>] <font color="#FFFFFF"><b>foo</b></font> (0.012s)
+ [<font color="#72D5A3"><b>+</b></font>] <font color="#FFFFFF"><b>bar</b></font> (0.006s)
+ [<font color="#72D5A3"><b>+</b></font>] <font color="#FFFFFF"><b>SuccessfulTests/test_good_hello</b></font> (0.008s)
+ [<font color="#72D5A3"><b>+</b></font>] <font color="#FFFFFF"><b>SuccessfulTests/test_good_world</b></font> (0.007s)
+ [<font color="#DCA3A3"><b>F</b></font>] <font color="#FFFFFF"><b>FailingTests/test_bad_exit</b></font> (exit <font color="#DCA3A3"><b>1</b></font>) (0.005s)
+     <font color="#DCA3A3"><b>&quot;false&quot; failed</b></font> (assert_success)
+
+ [<font color="#DCA3A3"><b>F</b></font>] <font color="#FFFFFF"><b>FailingTests/test_bad_stdout</b></font> (exit <font color="#DCA3A3"><b>1</b></font>) (0.007s)
+     <font color="#DCA3A3"><b>STDOUT of &quot;echo TEST&quot; does not match the contents of &quot;-&quot;</b></font> (assert_stdout)
+
+     captured output:
+     ---------------
+     <font color="#919191">--- /dev/fd/58</font>	<font color="#919191">2018-10-07 15:50:33.649782907 +0100</font>
+     <font color="#919191">+++ -</font>	<font color="#919191">2018-10-07 15:50:33.652099359 +0100</font>
      <font color="#919191">@@ -1 +1 @@</font>
      <font color="#919191">-TEST</font>
      <font color="#919191">+FAIL</font>
+
  [<font color="#919191"><b>-</b></font>] <font color="#FFFFFF"><b>skip_this_one</b></font>
  [<font color="#919191"><b>-</b></font>] <font color="#FFFFFF"><b>skip_this_one_too</b></font>
 
