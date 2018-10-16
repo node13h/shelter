@@ -21,6 +21,14 @@ _mute_assert_fd () {
     "$@" {SHELTER_ASSERT_FD}>/dev/null
 }
 
+test__mute_assert_fd_success () {
+    _mute_assert_fd true
+}
+
+test__mute_assert_fd_failure () {
+    ! _mute_assert_fd false
+}
+
 test_assert_stdout_success () {
     assert_stdout 'printf "%s\\n" This is a multiline test' <(
         cat <<EOF
