@@ -119,6 +119,19 @@ assert_fail Assert failed!
 EOF
 }
 
+test_assert_stdout_contains_success () {
+    assert_stdout_contains 'echo This is a test' '^This'
+}
+
+test_assert_stdout_contains_failure () {
+    ! _mute_assert_fd assert_stdout_contains 'echo This is a test' '^test'
+}
+
+test_assert_stdout_contains_assert_fd_message () {
+    diff -du <(assert_stdout_contains 'echo TEST' 'FAIL' 'Assert failed!' {SHELTER_ASSERT_FD}>&1 &>/dev/null) - <<"EOF"
+assert_stdout_contains Assert failed!
+EOF
+}
 
 sample_test_case_1_successful () {
     echo 'Hello'
