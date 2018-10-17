@@ -21,6 +21,14 @@ _mute_assert_fd () {
     "$@" {SHELTER_ASSERT_FD}>/dev/null
 }
 
+test__mute_assert_fd_success () {
+    _mute_assert_fd true
+}
+
+test__mute_assert_fd_failure () {
+    ! _mute_assert_fd false
+}
+
 test_assert_stdout_success () {
     assert_stdout 'printf "%s\\n" This is a multiline test' <(
         cat <<EOF
@@ -111,6 +119,33 @@ assert_fail Assert failed!
 EOF
 }
 
+test_assert_stdout_contains_success () {
+    assert_stdout_contains 'echo This is a test' '^This'
+}
+
+test_assert_stdout_contains_failure () {
+    ! _mute_assert_fd assert_stdout_contains 'echo This is a test' '^test'
+}
+
+test_assert_stdout_contains_assert_fd_message () {
+    diff -du <(assert_stdout_contains 'echo TEST' 'FAIL' 'Assert failed!' {SHELTER_ASSERT_FD}>&1 &>/dev/null) - <<"EOF"
+assert_stdout_contains Assert failed!
+EOF
+}
+
+test_assert_stdout_not_contains_success () {
+    assert_stdout_not_contains 'echo This is a test' 'foo'
+}
+
+test_assert_stdout_not_contains_failure () {
+    ! _mute_assert_fd assert_stdout_not_contains 'echo This is a test' '^This'
+}
+
+test_assert_stdout_not_contains_assert_fd_message () {
+    diff -du <(assert_stdout_not_contains 'echo TEST' 'TEST' 'Assert failed!' {SHELTER_ASSERT_FD}>&1 &>/dev/null) - <<"EOF"
+assert_stdout_not_contains Assert failed!
+EOF
+}
 
 sample_test_case_1_successful () {
     echo 'Hello'
