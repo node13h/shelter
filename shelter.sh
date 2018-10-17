@@ -163,6 +163,28 @@ assert_stdout_contains () {
 }
 
 
+## @fn assert_stdout_not_contains ()
+## @brief Assert none of the STDOUT lines will match the regex
+## @details In case of a match - an assertion name and message
+## will be output to SHELTER_ASSERT_FD, and the function will
+## exit with a non-zero exit code
+## @param cmd command. Will be passed to 'eval'
+## @param regex. Regex to match (ERE)
+##
+## Example
+##
+## @code{.sh}
+## assert_stdout_not_contains 'echo Hello World' 'foo'
+## @endcode
+assert_stdout_not_contains () {
+    declare cmd="$1"
+    declare regex="${2}"
+    declare msg="${3:-STDOUT of \"${cmd}\" contains \"${regex}\"}"
+
+    ! grep -E "$regex" <(eval "$cmd") &>/dev/null || _assert_msg "$msg"
+}
+
+
 ## @fn shelter_run_test_case ()
 ## @brief Run a command in an isolated environment and return an annotated output
 ## @details The command is executed with errexit and nounset enabled.
