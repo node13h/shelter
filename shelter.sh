@@ -15,6 +15,8 @@ declare -ri SHELTER_BLOCK_SUITES=1
 declare -ri SHELTER_BLOCK_SUITE=2
 declare -ri SHELTER_BLOCK_TESTCASE=3
 
+declare -Ag SHELTER_PATCHED_COMMANDS=()
+
 ## @var SHELTER_SKIP_TEST_CASES
 ## @brief A list of test case commands to skip
 ## @details When set before executing test suites allows to skip
@@ -1036,4 +1038,22 @@ shelter_human_formatter () {
 
         _shelter_formatter
     )
+}
+
+patch_command () {
+    declare strategy="$1"
+    declare name="$2"
+    declare cmd="$3"
+
+    if [[ -n "${SHELTER_PATCHED_COMMANDS["$name"]:-}" ]]; then
+        printf 'Command %s is already patched\n' "$name" >&2
+        return 1
+    fi
+
+    case "$strategy" in
+        function)
+            SHELTER_PATCHED_COMMANDS["$name"]="$cmd"
+            eval "$name () { eval \"\${SHELTER_PATCHED_COMMANDS[\"$name\"]}\"; }"
+            ;;
+    esac
 }

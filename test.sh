@@ -777,6 +777,28 @@ Test results: 0 passed, 1 failed, 0 errors, 0 skipped
 EOF
 )
 
+test_patch_command_function_strategy () {
+    patch_command function true 'echo "Hello"'
+
+    [[ -n "${SHELTER_PATCHED_COMMANDS[true]:-}" ]]
+
+    diff -du <(true) - <<"EOF"
+Hello
+EOF
+
+    unset -f true
+
+    diff -du <(true) <(:)
+}
+
+test_patch_command_function_strategy_fail_pathched_already () {
+    patch_command function true 'echo "Hello"'
+    _negate_status patch_command function true 'echo "Hello"' &>/dev/null
+
+    unset -f true
+}
+
+
 # A very basic test runner to keep it simple while
 # testing the testing framework :)
 
