@@ -32,6 +32,9 @@ declare -ag SHELTER_SKIP_TEST_CASES=()
 SHELTER_TEMP_DIR=$(mktemp -d)
 declare -rg SHELTER_TEMP_DIR
 
+mkdir "${SHELTER_TEMP_DIR}/bin"
+PATH="${SHELTER_TEMP_DIR}/bin:${PATH}"
+
 _shelter_cleanup_temp_dir () {
     declare name
 
@@ -43,12 +46,18 @@ _shelter_cleanup_temp_dir () {
                     umount "$name"
                     rm -f -- "${SHELTER_PATCHED_COMMANDS["$name"]}"
                     ;;
+                path)
+                    >&2 printf 'Removing %s patch_command path override\n' "${SHELTER_PATCHED_COMMANDS["$name"]}"
+                    rm -f -- "${SHELTER_PATCHED_COMMANDS["$name"]}"
+                    ;;
+
             esac
         done
     fi
 }
 
 _shelter_cleanup () {
+    rmdir "${SHELTER_TEMP_DIR}/bin"
     rmdir "$SHELTER_TEMP_DIR"
 }
 
@@ -1105,6 +1114,20 @@ EOF
                 rm -f -- "$script"
                 return 1
             fi
+            ;;
+        path)
+            script="${SHELTER_TEMP_DIR}/bin/${name}"
+            cat >"$script" <<EOF
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+$cmd
+EOF
+            chmod 755 "$script"
+            SHELTER_PATCHED_COMMANDS["$name"]="$script"
+            # shellcheck disable=SC2034
+            SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]="$strategy"
             ;;
     esac
 }

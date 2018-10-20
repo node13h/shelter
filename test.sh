@@ -854,6 +854,40 @@ EOF
     _negate_status mountpoint /usr/bin/true &>/dev/null
 }
 
+test_patch_command_path_strategy () {
+    patch_command path true 'echo "Hello"'
+
+    [[ -n "${SHELTER_PATCHED_COMMANDS[true]:-}" ]]
+
+    diff -du <(env true) - <<"EOF"
+Hello
+EOF
+
+    rm -f -- "${SHELTER_PATCHED_COMMANDS['true']}"
+    unset SHELTER_PATCHED_COMMANDS['true']
+
+    diff -du <(env true) <(:)
+}
+
+test_patch_command_path_strategy_fail_pathched_already () {
+    patch_command path true 'echo "Hello"'
+    _negate_status patch_command path true 'echo "Hello"' &>/dev/null
+
+    rm -f -- "${SHELTER_PATCHED_COMMANDS['true']}"
+    unset SHELTER_PATCHED_COMMANDS['true']
+}
+
+test_shelter_run_test_case_cleans_up_patch_command_path_override () {
+    diff -du <(shelter_run_test_case 'patch_command path true "echo Hello"' | _exclude_env | _predictable_test_case_output) - <<EOF
+CMD patch_command path true "echo Hello"
+EXIT 0
+STDERR Removing ${SHELTER_TEMP_DIR}/bin/true patch_command path override
+TIME 0.01
+EOF
+
+    _negate_status test -f "${SHELTER_TEMP_DIR}/bin/true"
+}
+
 
 # A very basic test runner to keep it simple while
 # testing the testing framework :)
