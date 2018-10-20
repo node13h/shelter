@@ -16,6 +16,7 @@ declare -ri SHELTER_BLOCK_SUITE=2
 declare -ri SHELTER_BLOCK_TESTCASE=3
 
 declare -Ag SHELTER_PATCHED_COMMANDS=()
+declare -Ag SHELTER_PATCHED_COMMAND_STRATEGIES=()
 
 ## @var SHELTER_SKIP_TEST_CASES
 ## @brief A list of test case commands to skip
@@ -28,6 +29,34 @@ declare -ag SHELTER_SKIP_TEST_CASES=()
 # It provides a side channel for assertion messages
 [[ -n "${SHELTER_ASSERT_FD:-}" ]] || exec {SHELTER_ASSERT_FD}>&2
 
+SHELTER_TEMP_DIR=$(mktemp -d)
+declare -rg SHELTER_TEMP_DIR
+
+_shelter_cleanup_temp_dir () {
+    declare name
+
+    if [[ "${#SHELTER_PATCHED_COMMANDS[@]}" -gt 0 ]]; then
+        for name in "${!SHELTER_PATCHED_COMMANDS[@]}"; do
+            case "${SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]:-}" in
+                mount)
+                    >&2 printf 'Removing %s patch_command mount\n' "$name"
+                    umount "$name"
+                    rm -f -- "${SHELTER_PATCHED_COMMANDS["$name"]}"
+                    ;;
+            esac
+        done
+    fi
+}
+
+_shelter_cleanup () {
+    rmdir "$SHELTER_TEMP_DIR"
+}
+
+trap _shelter_cleanup EXIT
+
+_annotated_eval () {
+    eval "$1" 2> >(sed -u "s/^/STDERR /") > >(sed -u "s/^/STDOUT /")
+}
 
 # This function is used internally to emit assertion messages
 # to SHELTER_ASSERT_FD while retaining the exit code of a
@@ -266,7 +295,7 @@ shelter_run_test_case () {
             # user to perform sorting (sort -V) to split STDOUT and STDERR into
             # separate blocks (preserving the correct order within the block)
             # and reassemble back into a single block later (sort -V -k 2).
-            time eval '(set -eu; unset TIMEFORMAT shelter_shopt_backup; eval "$1" 2> >(sed -u "s/^/STDERR /") > >(sed -u "s/^/STDOUT /"))' \
+            time eval '(set -eu; unset TIMEFORMAT shelter_shopt_backup; trap "_annotated_eval _shelter_cleanup_temp_dir" EXIT; _annotated_eval "$1")' \
                 | { grep -n '' || true; } \
                 | sed -u 's/^\([0-9]\+\):\(STDOUT\|STDERR\) /\2 \1 /'
 
@@ -1045,6 +1074,8 @@ patch_command () {
     declare name="$2"
     declare cmd="$3"
 
+    declare script
+
     if [[ -n "${SHELTER_PATCHED_COMMANDS["$name"]:-}" ]]; then
         printf 'Command %s is already patched\n' "$name" >&2
         return 1
@@ -1052,8 +1083,28 @@ patch_command () {
 
     case "$strategy" in
         function)
-            SHELTER_PATCHED_COMMANDS["$name"]="$cmd"
             eval "$name () { eval \"\${SHELTER_PATCHED_COMMANDS[\"$name\"]}\"; }"
+            SHELTER_PATCHED_COMMANDS["$name"]="$cmd"
+            SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]="$strategy"
+            ;;
+        mount)
+            script=$(mktemp --tmpdir="$SHELTER_TEMP_DIR")
+            cat >"$script" <<EOF
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+$cmd
+EOF
+            chmod 755 "$script"
+            if mount --bind "$script" "$name"; then
+                SHELTER_PATCHED_COMMANDS["$name"]="$script"
+                # shellcheck disable=SC2034
+                SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]="$strategy"
+            else
+                rm -f -- "$script"
+                return 1
+            fi
             ;;
     esac
 }

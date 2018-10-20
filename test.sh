@@ -787,6 +787,7 @@ Hello
 EOF
 
     unset -f true
+    unset SHELTER_PATCHED_COMMANDS['true']
 
     diff -du <(true) <(:)
 }
@@ -796,6 +797,61 @@ test_patch_command_function_strategy_fail_pathched_already () {
     _negate_status patch_command function true 'echo "Hello"' &>/dev/null
 
     unset -f true
+    unset SHELTER_PATCHED_COMMANDS['true']
+}
+
+test_patch_command_mount_strategy () {
+
+    if ! [[ "$(id -u)" -eq 0 ]]; then
+        >&2 printf 'Need root privileges to run %s. Skipping\n' "${FUNCNAME[0]}"
+        return 0
+    fi
+
+    patch_command mount '/usr/bin/true' 'echo "Hello"'
+
+    [[ -n "${SHELTER_PATCHED_COMMANDS['/usr/bin/true']:-}" ]]
+
+    diff -du <(/usr/bin/true) - <<"EOF"
+Hello
+EOF
+
+    umount /usr/bin/true
+    rm -f -- "${SHELTER_PATCHED_COMMANDS['/usr/bin/true']}"
+    unset SHELTER_PATCHED_COMMANDS['/usr/bin/true']
+
+    diff -du <(true) <(:)
+}
+
+test_patch_command_mount_strategy_fail_pathched_already () {
+
+    if ! [[ "$(id -u)" -eq 0 ]]; then
+        >&2 printf 'Need root privileges to run %s. Skipping\n' "${FUNCNAME[0]}"
+        return 0
+    fi
+
+    patch_command mount /usr/bin/true 'echo "Hello"'
+    _negate_status patch_command mount /usr/bin/true 'echo "Hello"' &>/dev/null
+
+    umount /usr/bin/true
+    rm -f -- "${SHELTER_PATCHED_COMMANDS['/usr/bin/true']}"
+    unset SHELTER_PATCHED_COMMANDS['/usr/bin/true']
+}
+
+test_shelter_run_test_case_cleans_up_patch_command_mount () {
+
+    if ! [[ "$(id -u)" -eq 0 ]]; then
+        >&2 printf 'Need root privileges to run %s. Skipping\n' "${FUNCNAME[0]}"
+        return 0
+    fi
+
+    diff -du <(shelter_run_test_case 'patch_command mount /usr/bin/true "echo Hello"' | _exclude_env | _predictable_test_case_output) - <<"EOF"
+CMD patch_command mount /usr/bin/true "echo Hello"
+EXIT 0
+STDERR Removing /usr/bin/true patch_command mount
+TIME 0.01
+EOF
+
+    _negate_status mountpoint /usr/bin/true &>/dev/null
 }
 
 
