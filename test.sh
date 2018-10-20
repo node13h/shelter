@@ -11,6 +11,58 @@ PROG_DIR=$(dirname "${BASH_SOURCE[@]}")
 # shellcheck source=shelter.sh
 source "${PROG_DIR%/}/shelter.sh"
 
+
+_tricky_fail () {
+    false
+    true
+}
+
+test__tricky_fail () {
+    declare -i rc
+
+    set +e
+    (
+        set -e
+        _tricky_fail
+    )
+
+    # shellcheck disable=SC2181
+    ! [[ "$?" -eq 0 ]]
+}
+
+_negate_status () {
+    declare -i rc
+
+    set +e
+    (
+        set -e
+        "$@"
+    )
+    rc="$?"
+    set -e
+
+    if [[ "$rc" -eq 0 ]]; then
+        return 1
+    else
+        return 0
+    fi
+}
+
+test__negate_status_success () {
+    _negate_status false
+}
+
+test__negate_status_success_tricky_fail () {
+    _negate_status _tricky_fail
+}
+
+test__negate_status_failure () {
+    # Use of ! is OK here as we are executing a single
+    # non-compound command
+    ! _negate_status true
+}
+
+
 test_assert_fd () {
     # shellcheck disable=SC2031
     [[ -n "${SHELTER_ASSERT_FD:-}" ]]
@@ -26,7 +78,7 @@ test__mute_assert_fd_success () {
 }
 
 test__mute_assert_fd_failure () {
-    ! _mute_assert_fd false
+    _negate_status _mute_assert_fd false
 }
 
 test_assert_stdout_success () {
@@ -50,7 +102,7 @@ test_assert_stdout_success_stderr_silent () {
 }
 
 test_assert_stdout_fail () {
-    ! _mute_assert_fd assert_stdout 'printf "%s\\n" This is a multiline test' <(
+    _negate_status _mute_assert_fd assert_stdout 'printf "%s\\n" This is a multiline test' <(
         cat <<EOF
 This
 is
@@ -84,7 +136,11 @@ test_assert_success_sucess () {
 }
 
 test_assert_success_failure () {
-    ! _mute_assert_fd assert_success 'false && true'
+    _negate_status _mute_assert_fd assert_success 'false && true'
+}
+
+test_assert_success_failure_tricky_fail () {
+    _negate_status _mute_assert_fd assert_success _tricky_fail
 }
 
 test_assert_success_assert_fd_message () {
@@ -97,16 +153,20 @@ test_assert_fail_sucess () {
     assert_fail 'false && true'
 }
 
+test_assert_fail_sucess_tricky_fail () {
+    assert_fail _tricky_fail
+}
+
 test_assert_fail_sucess_specific () {
     assert_fail '( exit 5 )' 5
 }
 
 test_assert_fail_failure () {
-    ! _mute_assert_fd assert_fail 'false || true'
+    _negate_status _mute_assert_fd assert_fail 'false || true'
 }
 
 test_assert_fail_failure_specific () {
-    ! _mute_assert_fd assert_fail '( exit 5 )' 1
+    _negate_status _mute_assert_fd assert_fail '( exit 5 )' 1
 }
 
 test_assert_fail_invalid_arg () {
@@ -124,7 +184,7 @@ test_assert_stdout_contains_success () {
 }
 
 test_assert_stdout_contains_failure () {
-    ! _mute_assert_fd assert_stdout_contains 'echo This is a test' '^test'
+    _negate_status _mute_assert_fd assert_stdout_contains 'echo This is a test' '^test'
 }
 
 test_assert_stdout_contains_assert_fd_message () {
@@ -138,7 +198,7 @@ test_assert_stdout_not_contains_success () {
 }
 
 test_assert_stdout_not_contains_failure () {
-    ! _mute_assert_fd assert_stdout_not_contains 'echo This is a test' '^This'
+    _negate_status _mute_assert_fd assert_stdout_not_contains 'echo This is a test' '^This'
 }
 
 test_assert_stdout_not_contains_assert_fd_message () {
@@ -185,7 +245,7 @@ test_shelter_run_test_case_successful_env () {
 test_shelter_run_test_case_successful_env_missing () {
     unset shelter_test_variable
 
-    shelter_run_test_case sample_test_case_1_successful | { ! grep '^ENV shelter_test_variable declare\\ --\\ shelter_test_variable=\\"hi\\"$' >/dev/null; }
+    shelter_run_test_case sample_test_case_1_successful | { _negate_status grep '^ENV shelter_test_variable declare\\ --\\ shelter_test_variable=\\"hi\\"$' >/dev/null; }
 }
 
 test_shelter_run_test_case_successful () {

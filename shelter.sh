@@ -94,7 +94,18 @@ assert_success () {
     declare cmd="$1"
     declare msg="${2:-\"${cmd}\" failed}"
 
-    eval "$cmd" || _assert_msg "$msg"
+    declare -i rc
+
+    set +e
+    (
+        set -e
+        eval "$cmd"
+    )
+    rc="$?"
+    set -e
+
+    # shellcheck disable=SC2181
+    [[ "$rc" -eq 0 ]] || _assert_msg "$msg"
 }
 
 ## @fn assert_fail ()
@@ -129,9 +140,15 @@ assert_fail () {
         return 1
     fi
 
-    declare rc=0
+    declare -i rc=0
 
-    eval "$cmd" || rc="$?"
+    set +e
+    (
+        set -e
+        eval "$cmd"
+    )
+    rc="$?"
+    set -e
 
     if [[ -z "$exit_code" ]]; then
         [[ "$rc" -gt 0 ]] || _assert_msg "$msg"
