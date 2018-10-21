@@ -889,6 +889,71 @@ EOF
     _negate_status test -f "${SHELTER_TEMP_DIR}/bin/true"
 }
 
+test_unpatch_command_not_patched () {
+    _negate_status unpatch_command this_command_is_not_patched &>/dev/null
+}
+
+test_unpatch_command_function_strategy () (
+
+    _test_command () {
+        true
+    }
+
+    SHELTER_PATCHED_COMMANDS['_test_command']='true'
+    SHELTER_PATCHED_COMMAND_STRATEGIES['_test_command']='function'
+
+    unpatch_command '_test_command'
+
+    _negate_status declare -f '_test_command' &>/dev/null
+    [[ -z "${SHELTER_PATCHED_COMMANDS['_test_command']:-}" ]]
+    [[ -z "${SHELTER_PATCHED_COMMAND_STRATEGIES['_test_command']:-}" ]]
+)
+
+test_unpatch_command_mount_strategy () {
+    declare cmd script
+
+    if ! [[ "$(id -u)" -eq 0 ]]; then
+        >&2 printf 'Need root privileges to run %s. Skipping\n' "${FUNCNAME[0]}"
+        return 0
+    fi
+
+    cmd="${SHELTER_TEMP_DIR}/test_command"
+    script="${SHELTER_TEMP_DIR}/test_command_script"
+
+    touch "$cmd"
+    touch "$script"
+
+    mount --bind "$script" "$cmd"
+
+    SHELTER_PATCHED_COMMANDS["$cmd"]="$script"
+    SHELTER_PATCHED_COMMAND_STRATEGIES["$cmd"]='mount'
+
+    unpatch_command "$cmd"
+
+    _negate_status mountpoint -q "$cmd"
+    _negate_status test -f "$script"
+    [[ -z "${SHELTER_PATCHED_COMMANDS["$cmd"]:-}" ]]
+    [[ -z "${SHELTER_PATCHED_COMMAND_STRATEGIES["$cmd"]:-}" ]]
+
+    rm -f -- "$cmd"
+}
+
+test_unpatch_command_path_strategy () {
+    cmd='test_command'
+    script="${SHELTER_TEMP_DIR}/bin/test_command"
+
+    touch "$script"
+
+    SHELTER_PATCHED_COMMANDS["$cmd"]="$script"
+    SHELTER_PATCHED_COMMAND_STRATEGIES["$cmd"]='path'
+
+    unpatch_command "$cmd"
+
+    _negate_status test -f "$script"
+    [[ -z "${SHELTER_PATCHED_COMMANDS["$cmd"]:-}" ]]
+    [[ -z "${SHELTER_PATCHED_COMMAND_STRATEGIES["$cmd"]:-}" ]]
+}
+
 
 # A very basic test runner to keep it simple while
 # testing the testing framework :)

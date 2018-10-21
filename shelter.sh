@@ -1131,6 +1131,33 @@ EOF
     esac
 
     SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]="$strategy"
+}
+
+unpatch_command () {
+    declare name="$1"
+
+    if [[ -z "${SHELTER_PATCHED_COMMANDS["$name"]:-}" ]]; then
+        printf 'Command %s is not patched\n' "$name" >&2
+        return 1
+    fi
+
+    case "${SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]}" in
+        function)
+            unset -f "$name"
+            ;;
+        mount)
+            umount "$name"
+            rm -f -- "${SHELTER_PATCHED_COMMANDS["$name"]}"
+            ;;
+        path)
+            rm -f -- "${SHELTER_PATCHED_COMMANDS["$name"]}"
+            ;;
+        *)
+            printf 'Unsupported strategy %s\n' "$strategy" >&2
+            return 1
             ;;
     esac
+
+    unset SHELTER_PATCHED_COMMANDS["$name"]
+    unset SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]
 }
