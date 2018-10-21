@@ -1136,8 +1136,13 @@ patch_command () {
 
     case "$strategy" in
         function)
-            eval "$name () { eval \"\${SHELTER_PATCHED_COMMANDS[\"$name\"]}\"; }"
-            SHELTER_PATCHED_COMMANDS["$name"]="$cmd"
+            script="${name} () { ${cmd}; }"
+
+            eval "$script"
+            # shellcheck disable=SC2163
+            export -f "$name"
+
+            SHELTER_PATCHED_COMMANDS["$name"]="$script"
             ;;
         mount)
             script=$(mktemp --tmpdir="$SHELTER_TEMP_DIR")

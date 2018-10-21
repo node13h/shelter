@@ -792,6 +792,21 @@ EOF
     diff -du <(true) <(:)
 }
 
+test_patch_command_function_strategy_child_shell () {
+    patch_command function true 'echo "Hello"'
+
+    [[ -n "${SHELTER_PATCHED_COMMANDS[true]:-}" ]]
+
+    diff -du <(bash -c 'true') - <<"EOF"
+Hello
+EOF
+
+    unset -f true
+    unset SHELTER_PATCHED_COMMANDS['true']
+
+    diff -du <(bash -c 'true') <(:)
+}
+
 test_patch_command_function_strategy_fail_pathched_already () {
     patch_command function true 'echo "Hello"'
     _negate_status patch_command function true 'echo "Hello"' &>/dev/null
