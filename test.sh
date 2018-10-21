@@ -777,6 +777,199 @@ Test results: 0 passed, 1 failed, 0 errors, 0 skipped
 EOF
 )
 
+test_patch_command_function_strategy () {
+    patch_command function true 'echo "Hello"'
+
+    [[ -n "${SHELTER_PATCHED_COMMANDS[true]:-}" ]]
+
+    diff -du <(true) - <<"EOF"
+Hello
+EOF
+
+    unset -f true
+    unset SHELTER_PATCHED_COMMANDS['true']
+
+    diff -du <(true) <(:)
+}
+
+test_patch_command_function_strategy_child_shell () {
+    patch_command function true 'echo "Hello"'
+
+    [[ -n "${SHELTER_PATCHED_COMMANDS[true]:-}" ]]
+
+    diff -du <(bash -c 'true') - <<"EOF"
+Hello
+EOF
+
+    unset -f true
+    unset SHELTER_PATCHED_COMMANDS['true']
+
+    diff -du <(bash -c 'true') <(:)
+}
+
+test_patch_command_function_strategy_fail_pathched_already () {
+    patch_command function true 'echo "Hello"'
+    _negate_status patch_command function true 'echo "Hello"' &>/dev/null
+
+    unset -f true
+    unset SHELTER_PATCHED_COMMANDS['true']
+}
+
+test_patch_command_mount_strategy () {
+
+    if ! [[ "$(id -u)" -eq 0 ]]; then
+        >&2 printf 'Need root privileges to run %s. Skipping\n' "${FUNCNAME[0]}"
+        return 0
+    fi
+
+    patch_command mount '/usr/bin/true' 'echo "Hello"'
+
+    mountpoint -q "/usr/bin/true"
+    [[ -n "${SHELTER_PATCHED_COMMANDS['/usr/bin/true']:-}" ]]
+
+    diff -du <(/usr/bin/true) - <<"EOF"
+Hello
+EOF
+
+    umount /usr/bin/true
+    rm -f -- "${SHELTER_PATCHED_COMMANDS['/usr/bin/true']}"
+    unset SHELTER_PATCHED_COMMANDS['/usr/bin/true']
+
+    diff -du <(true) <(:)
+}
+
+test_patch_command_mount_strategy_fail_pathched_already () {
+
+    if ! [[ "$(id -u)" -eq 0 ]]; then
+        >&2 printf 'Need root privileges to run %s. Skipping\n' "${FUNCNAME[0]}"
+        return 0
+    fi
+
+    patch_command mount /usr/bin/true 'echo "Hello"'
+    _negate_status patch_command mount /usr/bin/true 'echo "Hello"' &>/dev/null
+
+    umount /usr/bin/true
+    rm -f -- "${SHELTER_PATCHED_COMMANDS['/usr/bin/true']}"
+    unset SHELTER_PATCHED_COMMANDS['/usr/bin/true']
+}
+
+test_shelter_run_test_case_cleans_up_patch_command_mount () {
+
+    if ! [[ "$(id -u)" -eq 0 ]]; then
+        >&2 printf 'Need root privileges to run %s. Skipping\n' "${FUNCNAME[0]}"
+        return 0
+    fi
+
+    diff -du <(shelter_run_test_case 'patch_command mount /usr/bin/true "echo Hello"' | _exclude_env | _predictable_test_case_output) - <<"EOF"
+CMD patch_command mount /usr/bin/true "echo Hello"
+EXIT 0
+STDERR Removing /usr/bin/true patch_command mount
+TIME 0.01
+EOF
+
+    _negate_status mountpoint -q /usr/bin/true
+}
+
+test_patch_command_path_strategy () {
+    patch_command path true 'echo "Hello"'
+
+    [[ -n "${SHELTER_PATCHED_COMMANDS[true]:-}" ]]
+
+    diff -du <(env true) - <<"EOF"
+Hello
+EOF
+
+    rm -f -- "${SHELTER_PATCHED_COMMANDS['true']}"
+    unset SHELTER_PATCHED_COMMANDS['true']
+
+    diff -du <(env true) <(:)
+}
+
+test_patch_command_path_strategy_fail_pathched_already () {
+    patch_command path true 'echo "Hello"'
+    _negate_status patch_command path true 'echo "Hello"' &>/dev/null
+
+    rm -f -- "${SHELTER_PATCHED_COMMANDS['true']}"
+    unset SHELTER_PATCHED_COMMANDS['true']
+}
+
+test_shelter_run_test_case_cleans_up_patch_command_path_override () {
+    diff -du <(shelter_run_test_case 'patch_command path true "echo Hello"' | _exclude_env | _predictable_test_case_output) - <<EOF
+CMD patch_command path true "echo Hello"
+EXIT 0
+STDERR Removing ${SHELTER_TEMP_DIR}/bin/true patch_command path override
+TIME 0.01
+EOF
+
+    _negate_status test -f "${SHELTER_TEMP_DIR}/bin/true"
+}
+
+test_unpatch_command_not_patched () {
+    _negate_status unpatch_command this_command_is_not_patched &>/dev/null
+}
+
+test_unpatch_command_function_strategy () (
+
+    _test_command () {
+        true
+    }
+
+    SHELTER_PATCHED_COMMANDS['_test_command']='true'
+    SHELTER_PATCHED_COMMAND_STRATEGIES['_test_command']='function'
+
+    unpatch_command '_test_command'
+
+    _negate_status declare -f '_test_command' &>/dev/null
+    [[ -z "${SHELTER_PATCHED_COMMANDS['_test_command']:-}" ]]
+    [[ -z "${SHELTER_PATCHED_COMMAND_STRATEGIES['_test_command']:-}" ]]
+)
+
+test_unpatch_command_mount_strategy () {
+    declare cmd script
+
+    if ! [[ "$(id -u)" -eq 0 ]]; then
+        >&2 printf 'Need root privileges to run %s. Skipping\n' "${FUNCNAME[0]}"
+        return 0
+    fi
+
+    cmd="${SHELTER_TEMP_DIR}/test_command"
+    script="${SHELTER_TEMP_DIR}/test_command_script"
+
+    touch "$cmd"
+    touch "$script"
+
+    mount --bind "$script" "$cmd"
+
+    SHELTER_PATCHED_COMMANDS["$cmd"]="$script"
+    SHELTER_PATCHED_COMMAND_STRATEGIES["$cmd"]='mount'
+
+    unpatch_command "$cmd"
+
+    _negate_status mountpoint -q "$cmd"
+    _negate_status test -f "$script"
+    [[ -z "${SHELTER_PATCHED_COMMANDS["$cmd"]:-}" ]]
+    [[ -z "${SHELTER_PATCHED_COMMAND_STRATEGIES["$cmd"]:-}" ]]
+
+    rm -f -- "$cmd"
+}
+
+test_unpatch_command_path_strategy () {
+    cmd='test_command'
+    script="${SHELTER_TEMP_DIR}/bin/test_command"
+
+    touch "$script"
+
+    SHELTER_PATCHED_COMMANDS["$cmd"]="$script"
+    SHELTER_PATCHED_COMMAND_STRATEGIES["$cmd"]='path'
+
+    unpatch_command "$cmd"
+
+    _negate_status test -f "$script"
+    [[ -z "${SHELTER_PATCHED_COMMANDS["$cmd"]:-}" ]]
+    [[ -z "${SHELTER_PATCHED_COMMAND_STRATEGIES["$cmd"]:-}" ]]
+}
+
+
 # A very basic test runner to keep it simple while
 # testing the testing framework :)
 

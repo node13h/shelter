@@ -15,6 +15,9 @@ declare -ri SHELTER_BLOCK_SUITES=1
 declare -ri SHELTER_BLOCK_SUITE=2
 declare -ri SHELTER_BLOCK_TESTCASE=3
 
+declare -Ag SHELTER_PATCHED_COMMANDS=()
+declare -Ag SHELTER_PATCHED_COMMAND_STRATEGIES=()
+
 ## @var SHELTER_SKIP_TEST_CASES
 ## @brief A list of test case commands to skip
 ## @details When set before executing test suites allows to skip
@@ -26,6 +29,43 @@ declare -ag SHELTER_SKIP_TEST_CASES=()
 # It provides a side channel for assertion messages
 [[ -n "${SHELTER_ASSERT_FD:-}" ]] || exec {SHELTER_ASSERT_FD}>&2
 
+SHELTER_TEMP_DIR=$(mktemp -d)
+declare -rg SHELTER_TEMP_DIR
+
+mkdir "${SHELTER_TEMP_DIR}/bin"
+PATH="${SHELTER_TEMP_DIR}/bin:${PATH}"
+
+_shelter_cleanup_temp_dir () {
+    declare name
+
+    if [[ "${#SHELTER_PATCHED_COMMANDS[@]}" -gt 0 ]]; then
+        for name in "${!SHELTER_PATCHED_COMMANDS[@]}"; do
+            case "${SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]:-}" in
+                mount)
+                    >&2 printf 'Removing %s patch_command mount\n' "$name"
+                    umount "$name"
+                    rm -f -- "${SHELTER_PATCHED_COMMANDS["$name"]}"
+                    ;;
+                path)
+                    >&2 printf 'Removing %s patch_command path override\n' "${SHELTER_PATCHED_COMMANDS["$name"]}"
+                    rm -f -- "${SHELTER_PATCHED_COMMANDS["$name"]}"
+                    ;;
+
+            esac
+        done
+    fi
+}
+
+_shelter_cleanup () {
+    rmdir "${SHELTER_TEMP_DIR}/bin"
+    rmdir "$SHELTER_TEMP_DIR"
+}
+
+trap _shelter_cleanup EXIT
+
+_annotated_eval () {
+    eval "$1" 2> >(sed -u "s/^/STDERR /") > >(sed -u "s/^/STDOUT /")
+}
 
 # This function is used internally to emit assertion messages
 # to SHELTER_ASSERT_FD while retaining the exit code of a
@@ -264,7 +304,7 @@ shelter_run_test_case () {
             # user to perform sorting (sort -V) to split STDOUT and STDERR into
             # separate blocks (preserving the correct order within the block)
             # and reassemble back into a single block later (sort -V -k 2).
-            time eval '(set -eu; unset TIMEFORMAT shelter_shopt_backup; eval "$1" 2> >(sed -u "s/^/STDERR /") > >(sed -u "s/^/STDOUT /"))' \
+            time eval '(set -eu; unset TIMEFORMAT shelter_shopt_backup; trap "_annotated_eval _shelter_cleanup_temp_dir" EXIT; _annotated_eval "$1")' \
                 | { grep -n '' || true; } \
                 | sed -u 's/^\([0-9]\+\):\(STDOUT\|STDERR\) /\2 \1 /'
 
@@ -1036,4 +1076,141 @@ shelter_human_formatter () {
 
         _shelter_formatter
     )
+}
+
+
+## @fn patch_command ()
+## @brief Overload a command with a mock
+## @details There are multiple patching strategies available, see below
+## @param strategy patch method. Use 'function', 'mount' or 'path'
+## @param name name or path of the command to patch
+## @param cmd command to execute when `name` is called. Will be passed to `eval`
+##
+## Strategies
+##
+## function. Define function with the same name as the mocked command.
+## Will only work in a shell. `name` argument may not contain a path in
+## this case. This method will only work if the mocked command is called
+## using it's name withot a path. Will override shell built-ins
+##
+## mount. Create a temporary script and mount it over the actual command.
+## While this is the most reliable mocking method - it also requires the
+## root privileges and mocks the command systemwide. `name` argument must be set
+## to a full path of the mocked command (i.e. `/usr/bin/echo`)
+##
+## path. Create a temporary script with the same name as the mocked command
+## in a temporary directory prepended to the `PATH`. Will only affect the
+## current process and it's children. This method will only work if the mocked
+## command is called using it's name withot a path. Will not override shell
+## built-ins
+##
+## Examples (every example will output "Hello World")
+##
+## @code{.sh}
+## patch_command function echo 'printf "Hello %s" "$1"'
+## echo World
+## @endcode
+##
+## This one needs root privileges
+## @code{.sh}
+## patch_command mount /usr/bin/echo 'printf "Hello %s" "$1"'
+## /usr/bin/echo World
+## @endcode
+##
+## `env` is used to prevent shell built-in from being used
+## @code{.sh}
+## patch_command path echo 'printf "Hello %s" "$1"'
+## env echo World
+## @endcode
+patch_command () {
+    declare strategy="$1"
+    declare name="$2"
+    declare cmd="$3"
+
+    declare script
+
+    if [[ -n "${SHELTER_PATCHED_COMMANDS["$name"]:-}" ]]; then
+        printf 'Command %s is already patched\n' "$name" >&2
+        return 1
+    fi
+
+    case "$strategy" in
+        function)
+            script="${name} () { ${cmd}; }"
+
+            eval "$script"
+            # shellcheck disable=SC2163
+            export -f "$name"
+
+            SHELTER_PATCHED_COMMANDS["$name"]="$script"
+            ;;
+        mount)
+            script=$(mktemp --tmpdir="$SHELTER_TEMP_DIR")
+            cat >"$script" <<EOF
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+$cmd
+EOF
+            chmod 755 "$script"
+            if mount --bind "$script" "$name"; then
+                SHELTER_PATCHED_COMMANDS["$name"]="$script"
+            else
+                rm -f -- "$script"
+                return 1
+            fi
+            ;;
+        path)
+            script="${SHELTER_TEMP_DIR}/bin/${name}"
+            cat >"$script" <<EOF
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+$cmd
+EOF
+            chmod 755 "$script"
+            SHELTER_PATCHED_COMMANDS["$name"]="$script"
+            ;;
+        *)
+            printf 'Unsupported strategy %s\n' "$strategy" >&2
+            return 1
+            ;;
+    esac
+
+    SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]="$strategy"
+}
+
+
+## @fn unpatch_command ()
+## @brief Restore the original command patched with `patch_command`
+## @param name exactly the same name as was provided to `patch_command`
+unpatch_command () {
+    declare name="$1"
+
+    if [[ -z "${SHELTER_PATCHED_COMMANDS["$name"]:-}" ]]; then
+        printf 'Command %s is not patched\n' "$name" >&2
+        return 1
+    fi
+
+    case "${SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]}" in
+        function)
+            unset -f "$name"
+            ;;
+        mount)
+            umount "$name"
+            rm -f -- "${SHELTER_PATCHED_COMMANDS["$name"]}"
+            ;;
+        path)
+            rm -f -- "${SHELTER_PATCHED_COMMANDS["$name"]}"
+            ;;
+        *)
+            printf 'Unsupported strategy %s\n' "$strategy" >&2
+            return 1
+            ;;
+    esac
+
+    unset SHELTER_PATCHED_COMMANDS["$name"]
+    unset SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]
 }
