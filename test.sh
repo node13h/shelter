@@ -852,7 +852,7 @@ STDERR Removing /usr/bin/true patch_command mount
 TIME 0.01
 EOF
 
-    _negate_status mountpoint /usr/bin/true &>/dev/null
+    _negate_status mountpoint -q /usr/bin/true
 }
 
 test_patch_command_path_strategy () {
