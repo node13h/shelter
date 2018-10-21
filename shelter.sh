@@ -1094,7 +1094,6 @@ patch_command () {
         function)
             eval "$name () { eval \"\${SHELTER_PATCHED_COMMANDS[\"$name\"]}\"; }"
             SHELTER_PATCHED_COMMANDS["$name"]="$cmd"
-            SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]="$strategy"
             ;;
         mount)
             script=$(mktemp --tmpdir="$SHELTER_TEMP_DIR")
@@ -1108,8 +1107,6 @@ EOF
             chmod 755 "$script"
             if mount --bind "$script" "$name"; then
                 SHELTER_PATCHED_COMMANDS["$name"]="$script"
-                # shellcheck disable=SC2034
-                SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]="$strategy"
             else
                 rm -f -- "$script"
                 return 1
@@ -1126,8 +1123,14 @@ $cmd
 EOF
             chmod 755 "$script"
             SHELTER_PATCHED_COMMANDS["$name"]="$script"
-            # shellcheck disable=SC2034
-            SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]="$strategy"
+            ;;
+        *)
+            printf 'Unsupported strategy %s\n' "$strategy" >&2
+            return 1
+            ;;
+    esac
+
+    SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]="$strategy"
             ;;
     esac
 }
