@@ -1078,6 +1078,50 @@ shelter_human_formatter () {
     )
 }
 
+
+## @fn patch_command ()
+## @brief Overload a command with a mock
+## @details There are multiple patching strategies available, see below
+## @param strategy patch method. Use 'function', 'mount' or 'path'
+## @param name name or path of the command to patch
+## @param cmd command to execute when `name` is called. Will be passed to `eval`
+##
+## Strategies
+##
+## function. Define function with the same name as the mocked command.
+## Will only work in a shell. `name` argument may not contain a path in
+## this case. This method will only work if the mocked command is called
+## using it's name withot a path. Will override shell built-ins
+##
+## mount. Create a temporary script and mount it over the actual command.
+## While this is the most reliable mocking method - it also requires the
+## root privileges and mocks the command systemwide. `name` argument must be set
+## to a full path of the mocked command (i.e. `/usr/bin/echo`)
+##
+## path. Create a temporary script with the same name as the mocked command
+## in a temporary directory prepended to the `PATH`. Will only affect the
+## current process and it's children. This method will only work if the mocked
+## command is called using it's name withot a path. Will not override shell
+## built-ins
+##
+## Examples (every example will output "Hello World")
+##
+## @code{.sh}
+## patch_command function echo 'printf "Hello %s" "$1"'
+## echo World
+## @endcode
+##
+## This one needs root privileges
+## @code{.sh}
+## patch_command mount /usr/bin/echo 'printf "Hello %s" "$1"'
+## /usr/bin/echo World
+## @endcode
+##
+## `env` is used to prevent shell built-in from being used
+## @code{.sh}
+## patch_command path echo 'printf "Hello %s" "$1"'
+## env echo World
+## @endcode
 patch_command () {
     declare strategy="$1"
     declare name="$2"
@@ -1133,6 +1177,10 @@ EOF
     SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]="$strategy"
 }
 
+
+## @fn unpatch_command ()
+## @brief Restore the original command patched with `patch_command`
+## @param name exactly the same name as was provided to `patch_command`
 unpatch_command () {
     declare name="$1"
 
