@@ -809,6 +809,7 @@ test_patch_command_mount_strategy () {
 
     patch_command mount '/usr/bin/true' 'echo "Hello"'
 
+    mountpoint -q "/usr/bin/true"
     [[ -n "${SHELTER_PATCHED_COMMANDS['/usr/bin/true']:-}" ]]
 
     diff -du <(/usr/bin/true) - <<"EOF"
