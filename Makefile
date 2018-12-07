@@ -74,18 +74,18 @@ $(RPM_PACKAGE): PREFIX := /usr
 $(RPM_PACKAGE): $(SDIST_TARBALL)
 	mkdir -p bdist; \
 	rpmbuild -ba "shelter.spec" \
-		--define rpm_version\ $(PKG_VERSION) \
-		--define rpm_release\ $(PKG_RELEASE) \
-		--define sdist_dir\ $(SDIST_DIR) \
-		--define sdist_tarball\ $(SDIST_TARBALL) \
-		--define prefix\ $(PREFIX) \
-		--define _srcrpmdir\ sdist/ \
-		--define _rpmdir\ bdist/ \
-		--define _sourcedir\ $(CURRENT_DIR)/sdist \
-		--define _bindir\ $(BINDIR) \
-		--define _libdir\ $(LIBDIR) \
-		--define _defaultdocdir\ $(DOCSDIR) \
-		--define _mandir\ $(MANDIR)
+	  --define rpm_version\ $(PKG_VERSION) \
+	  --define rpm_release\ $(PKG_RELEASE) \
+	  --define sdist_dir\ $(SDIST_DIR) \
+	  --define sdist_tarball\ $(SDIST_TARBALL) \
+	  --define prefix\ $(PREFIX) \
+	  --define _srcrpmdir\ sdist/ \
+	  --define _rpmdir\ bdist/ \
+	  --define _sourcedir\ $(CURRENT_DIR)/sdist \
+	  --define _bindir\ $(BINDIR) \
+	  --define _libdir\ $(LIBDIR) \
+	  --define _defaultdocdir\ $(DOCSDIR) \
+	  --define _mandir\ $(MANDIR)
 
 rpm: $(RPM_PACKAGE)
 
