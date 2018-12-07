@@ -969,6 +969,42 @@ test_unpatch_command_path_strategy () {
     [[ -z "${SHELTER_PATCHED_COMMAND_STRATEGIES["$cmd"]:-}" ]]
 }
 
+test_supported_shelter_versions_major_minor_patch_success () {
+    SHELTER_VERSION='0.5.1'
+
+    supported_shelter_versions 1 2 0.5.1 3 4
+}
+
+test_supported_shelter_versions_major_minor_success () {
+    SHELTER_VERSION='0.5.1'
+
+    supported_shelter_versions 1 2 0.5 3 4
+}
+
+test_supported_shelter_versions_major_success () {
+    SHELTER_VERSION='0.5.1'
+
+    supported_shelter_versions 1 2 0 3 4
+}
+
+test_supported_shelter_versions_major_minor_patch_fail () {
+    SHELTER_VERSION='0.5.1'
+
+    _negate_status supported_shelter_versions 1 2 0.5.2 3 4
+}
+
+test_supported_shelter_versions_major_minor_fail () {
+    SHELTER_VERSION='0.5.1'
+
+    _negate_status supported_shelter_versions 1 2 0.6 3 4
+}
+
+test_supported_shelter_versions_major_fail () {
+    SHELTER_VERSION='0.5.1'
+
+    _negate_status supported_shelter_versions 1 2 3 4
+}
+
 
 # A very basic test runner to keep it simple while
 # testing the testing framework :)

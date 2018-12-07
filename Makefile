@@ -34,7 +34,7 @@ all: build
 lint:
 	shellcheck *.sh
 
-test: lint
+test: shelter-config.sh lint
 	bash test.sh
 
 doc/man/man3/shelter.sh.3:
@@ -42,7 +42,10 @@ doc/man/man3/shelter.sh.3:
 
 doc: doc/man/man3/shelter.sh.3
 
-build: test doc
+shelter-config.sh:
+	sed -e 's~@VERSION@~$(VERSION)~g' shelter-config.sh.in >shelter-config.sh
+
+build: test doc shelter-config.sh
 
 install: build
 	install -m 0755 -d $(DESTDIR)$(BINDIR)
@@ -50,6 +53,7 @@ install: build
 	install -m 0755 -d $(DESTDIR)$(DOCSDIR)/shelter
 	install -m 0755 doc/man/man3/shelter.sh.3 $(DESTDIR)$(MANDIR)/man3
 	install -m 0755 shelter.sh $(DESTDIR)$(BINDIR)
+	install -m 0644 shelter-config.sh $(DESTDIR)$(BINDIR)
 	install -m 0644 README.* $(DESTDIR)$(DOCSDIR)/shelter
 
 uninstall:
@@ -58,7 +62,8 @@ uninstall:
 	rm -f -- $(DESTDIR)$(BINDIR)/shelter.sh
 
 clean:
-	rm -rf -- doc
+	rm -f shelter-config.sh
+	rm -rf doc
 	rm -rf bdist sdist
 
 release:

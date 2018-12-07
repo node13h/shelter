@@ -3,3 +3,4 @@ control
 doc/
 sdist/
 bdist/
+shelter-config.sh

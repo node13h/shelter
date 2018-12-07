@@ -10,6 +10,9 @@
 
 set -euo pipefail
 
+# shellcheck disable=SC1091
+source shelter-config.sh
+
 declare -ri SHELTER_BLOCK_ROOT=0
 declare -ri SHELTER_BLOCK_SUITES=1
 declare -ri SHELTER_BLOCK_SUITE=2
@@ -85,6 +88,58 @@ _assert_msg () {
 
     printf '%s %s\n' "$assert_cmd" "$msg" >&"${SHELTER_ASSERT_FD}"
     return "$rc"
+}
+
+## @fn supported_shelter_versions ()
+## @brief Return success if the current Shelter version matches at least one
+## of the supplied versions
+## @details Use this command to assert you are using a compatible version
+## of Shelter framework by declaring a list of supported versions.
+## This allows you to fail early when an unsupported version of Shelter is
+## installed
+## @param version version to match. Format is
+## MAJOR or MAJOR.MINOR or MAJOR.MINOR.PATCH. May be specified multiple
+## times
+##
+## Example:
+##
+## @code{.sh}
+## supported_shelter_versions 0.5.0 0.6.1 1 2 4.9
+## @endcode
+supported_shelter_versions () {
+    declare SEMVER_RE='^([0-9]+).([0-9]+).([0-9]+)(-([0-9A-Za-z.-]+))?(\+([0-9A-Za-z.-]))?$'
+    declare VER_RE='^([0-9]+)(.([0-9]+))?(.([0-9]+))?$'
+
+    [[ "$SHELTER_VERSION" =~ $SEMVER_RE ]]
+
+    declare shelter_major="${BASH_REMATCH[1]}"
+    declare shelter_minor="${BASH_REMATCH[2]}"
+    declare shelter_patch="${BASH_REMATCH[3]}"
+
+    declare version match
+
+    for version in "$@"; do
+
+        match=1
+
+        [[ "$version" =~ $VER_RE ]]
+
+        [[ "$shelter_major" -eq "${BASH_REMATCH[1]}" ]] || match=0
+
+        if [[ -n "${BASH_REMATCH[3]:+x}" ]]; then
+            [[ "$shelter_minor" -eq "${BASH_REMATCH[3]}" ]] || match=0
+        fi
+
+        if [[ -n "${BASH_REMATCH[5]:+x}" ]]; then
+            [[ "$shelter_patch" -eq "${BASH_REMATCH[5]}" ]] || match=0
+        fi
+
+        if [[ "$match" -eq 1 ]]; then
+            return 0
+        fi
+    done
+
+    return 1
 }
 
 ## @fn assert_stdout ()
