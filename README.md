@@ -182,6 +182,8 @@ Output:
 </testsuite>
 ```
 
+![Output renddered by Jenkins Junit Plugin](jenkins-junit-example.png)
+
 
 Running the same suite piped into `shelter_human_formatter` like this:
 ```bash
