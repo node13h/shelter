@@ -27,7 +27,7 @@ SDIST_DIR = shelter-$(VERSION)
 RPM_PACKAGE := bdist/noarch/shelter-$(PKG_VERSION)-$(PKG_RELEASE).noarch.rpm
 DEB_PACKAGE := bdist/shelter_$(VERSION)_all.deb
 
-.PHONY: all lint test doc build install uninstall clean release sdist rpm publish-rpm deb publish-deb publish
+.PHONY: all lint test doc build install uninstall clean release-start release-finish release sdist rpm publish-rpm deb publish-deb publish
 
 all: build
 
@@ -66,8 +66,13 @@ clean:
 	rm -rf doc
 	rm -rf bdist sdist
 
-release:
-	git tag $(VERSION)
+release-start:
+	bash release.sh start
+
+release-finish:
+	bash release.sh finish
+
+release: release-start release-finish
 
 $(SDIST_TARBALL):
 	mkdir -p sdist; \
