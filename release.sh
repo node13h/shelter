@@ -78,6 +78,8 @@ finish () {
     git add VERSION
 
     git commit -m "Restore current version ${current_version}"
+
+    git branch -d "$release_branch"
 }
 
 
