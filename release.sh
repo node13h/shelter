@@ -57,7 +57,11 @@ start () {
 
 finish () {
     declare current_version
+    declare release_version
     declare release_branch
+    declare git_user_name
+
+    git_user_name=$(git config user.name)
 
     release_branch=$(git for-each-ref --format='%(refname:lstrip=2)' 'refs/heads/release/*')
 
@@ -66,6 +70,10 @@ finish () {
     git checkout master
 
     git merge -m "Merge ${release_branch}" "$release_branch"
+
+    release_version=$(cat VERSION)
+
+    git tag -a "$release_version" -m "Release ${release_version} by ${git_user_name}"
 
     git checkout develop
 
