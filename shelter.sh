@@ -538,7 +538,6 @@ shelter_run_test_suites () {
     declare -i shelter_suites_tests=0
     declare -i shelter_suites_errors=0
     declare -i shelter_suites_failures=0
-    declare -i shelter_suites_skipped=0
     declare -i shelter_suites_line=1
     declare shelter_suites_time='0.0'
 
@@ -560,9 +559,6 @@ shelter_run_test_suites () {
                     SUITE_FAILURES)
                         shelter_suites_failures+="$value"
                         ;;
-                    SUITE_SKIPPED)
-                        shelter_suites_skipped+="$value"
-                        ;;
                     SUITE_TESTS)
                         shelter_suites_tests+="$value"
                         ;;
@@ -575,14 +571,13 @@ shelter_run_test_suites () {
 
                 shelter_suites_line+=1
 
-            done < <(unset shelter_suites_tests shelter_suites_errors shelter_suites_failures shelter_suites_skipped shelter_suites_line shelter_suites_time; shelter_run_test_suite "$fn")
+            done < <(unset shelter_suites_tests shelter_suites_errors shelter_suites_failures shelter_suites_line shelter_suites_time; shelter_run_test_suite "$fn")
 
         done < <(compgen -A function "$2")
 
         printf '0 SUITES_TESTS %s\n' "$shelter_suites_tests"
         printf '0 SUITES_ERRORS %s\n' "$shelter_suites_errors"
         printf '0 SUITES_FAILURES %s\n' "$shelter_suites_failures"
-        printf '0 SUITES_SKIPPED %s\n' "$shelter_suites_skipped"
         printf '0 SUITES_TIME %s\n' "$shelter_suites_time"
 
     } | sort -n | sed -u 's/^[0-9]\+ //'
@@ -811,7 +806,6 @@ shelter_junit_formatter () {
             [SUITES_ERRORS]=errors
             [SUITES_FAILURES]=failures
             [SUITES_NAME]=name
-            [SUITES_SKIPPED]=skipped
             [SUITES_TESTS]=tests
             [SUITES_TIME]=time
             [SUITE_ERRORS]=errors
@@ -969,7 +963,6 @@ shelter_human_formatter () {
             [SUITES_ERRORS]=errors
             [SUITES_FAILURES]=failures
             [SUITES_NAME]=name
-            [SUITES_SKIPPED]=skipped
             [SUITES_TESTS]=tests
             [SUITES_TIME]=time
             [SUITE_ERRORS]=errors
