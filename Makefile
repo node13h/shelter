@@ -42,7 +42,7 @@ doc/man/man3/shelter.sh.3:
 
 doc: doc/man/man3/shelter.sh.3
 
-shelter-config.sh:
+shelter-config.sh: shelter-config.sh.in VERSION
 	sed -e 's~@VERSION@~$(VERSION)~g' shelter-config.sh.in >shelter-config.sh
 
 build: test doc shelter-config.sh
@@ -99,7 +99,7 @@ $(RPM_PACKAGE): $(SDIST_TARBALL)
 
 rpm: $(RPM_PACKAGE)
 
-control:
+control: control.in VERSION
 	sed -e 's~@VERSION@~$(VERSION)~g' control.in >control
 
 $(DEB_PACKAGE): control $(SDIST_TARBALL)
