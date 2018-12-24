@@ -1,17 +1,20 @@
 SHELL = bash
+
+PROJECT := shelter
+
 SEMVER_RE := ^([0-9]+.[0-9]+.[0-9]+)(-([0-9A-Za-z.-]+))?(\+([0-9A-Za-z.-]))?$
 VERSION := $(shell cat VERSION)
 VERSION_PRE := $(shell [[ "$(VERSION)" =~ $(SEMVER_RE) ]] && printf '%s\n' "$${BASH_REMATCH[3]:-}")
 
 PKG_VERSION := $(shell [[ "$(VERSION)" =~ $(SEMVER_RE) ]] && printf '%s\n' "$${BASH_REMATCH[1]}")
-ifneq ($(VERSION_PRE),)
+ifdef VERSION_PRE
 PKG_RELEASE := 1.$(VERSION_PRE)
 else
 PKG_RELEASE := 1
 endif
 
-BINTRAY_RPM_PATH := alikov/rpm/shelter/$(PKG_VERSION)
-BINTRAY_DEB_PATH := alikov/deb/shelter/$(PKG_VERSION)
+BINTRAY_RPM_PATH := alikov/rpm/$(PROJECT)/$(PKG_VERSION)
+BINTRAY_DEB_PATH := alikov/deb/$(PROJECT)/$(PKG_VERSION)
 
 PREFIX := /usr/local
 BINDIR = $(PREFIX)/bin
@@ -20,12 +23,11 @@ SHAREDIR = $(PREFIX)/share
 DOCSDIR = $(SHAREDIR)/doc
 MANDIR = $(SHAREDIR)/man
 
-CURRENT_DIR := $(shell printf '%q\n' "$$(pwd -P)")
-
-SDIST_TARBALL := sdist/shelter-$(VERSION).tar.gz
-SDIST_DIR = shelter-$(VERSION)
-RPM_PACKAGE := bdist/noarch/shelter-$(PKG_VERSION)-$(PKG_RELEASE).noarch.rpm
-DEB_PACKAGE := bdist/shelter_$(VERSION)_all.deb
+SDIST_TARBALL := sdist/$(PROJECT)-$(VERSION).tar.gz
+SDIST_DIR = $(PROJECT)-$(VERSION)
+SPEC_FILE := $(PROJECT).spec
+RPM_PACKAGE := bdist/noarch/$(PROJECT)-$(PKG_VERSION)-$(PKG_RELEASE).noarch.rpm
+DEB_PACKAGE := bdist/$(PROJECT)_$(VERSION)_all.deb
 
 .PHONY: all lint test doc build install uninstall clean release-start release-finish release sdist rpm publish-rpm deb publish-deb publish
 
@@ -60,6 +62,7 @@ uninstall:
 	rm -rf -- $(DESTDIR)$(DOCSDIR)/shelter
 	rm -f -- $(DESTDIR)$(MANDIR)/man3/shelter.sh.3
 	rm -f -- $(DESTDIR)$(BINDIR)/shelter.sh
+	rm -f -- $(DESTDIR)$(BINDIR)/shelter-config.sh
 
 clean:
 	rm -f shelter-config.sh
@@ -83,7 +86,7 @@ sdist: $(SDIST_TARBALL)
 $(RPM_PACKAGE): PREFIX := /usr
 $(RPM_PACKAGE): $(SDIST_TARBALL)
 	mkdir -p bdist; \
-	rpmbuild -ba "shelter.spec" \
+	rpmbuild -ba "$(SPEC_FILE)" \
 	  --define rpm_version\ $(PKG_VERSION) \
 	  --define rpm_release\ $(PKG_RELEASE) \
 	  --define sdist_dir\ $(SDIST_DIR) \
@@ -91,7 +94,7 @@ $(RPM_PACKAGE): $(SDIST_TARBALL)
 	  --define prefix\ $(PREFIX) \
 	  --define _srcrpmdir\ sdist/ \
 	  --define _rpmdir\ bdist/ \
-	  --define _sourcedir\ $(CURRENT_DIR)/sdist \
+	  --define _sourcedir\ $(CURDIR)/sdist \
 	  --define _bindir\ $(BINDIR) \
 	  --define _libdir\ $(LIBDIR) \
 	  --define _defaultdocdir\ $(DOCSDIR) \
@@ -108,7 +111,7 @@ $(DEB_PACKAGE): control $(SDIST_TARBALL)
 	mkdir -p "$${target}/DEBIAN"; \
 	cp control "$${target}/DEBIAN/control"; \
 	tar -C sdist -xzf $(SDIST_TARBALL); \
-	( cd sdist/$(SDIST_DIR); make DESTDIR="$$target" PREFIX=/usr install; ); \
+	make -C sdist/$(SDIST_DIR) DESTDIR="$$target" PREFIX=/usr install; \
 	dpkg-deb --build "$$target" $(DEB_PACKAGE); \
 	rm -rf -- "$$target"
 
