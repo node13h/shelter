@@ -152,7 +152,7 @@ supported_shelter_versions () {
 ## will be output to SHELTER_ASSERT_FD, and the function will exit
 ## with a non-zero exit code
 ## @param cmd command. Will be passed to 'eval'
-## @param OPTIONAL expected_file. File containing the expected output.
+## @param expected_file OPTIONAL. File containing the expected output.
 ## Use dash (the default) for STDIN. Process substitution will also work
 ## @param msg assertion message
 ##
