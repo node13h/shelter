@@ -110,36 +110,32 @@ _assert_msg () {
 ## supported_shelter_versions 0.5.0 0.6.1 1 2 4.9
 ## @endcode
 supported_shelter_versions () {
-    declare SEMVER_RE='^([0-9]+).([0-9]+).([0-9]+)(-([0-9A-Za-z.-]+))?(\+([0-9A-Za-z.-]))?$'
-    declare VER_RE='^([0-9]+)(.([0-9]+))?(.([0-9]+))?$'
+    declare -r SEMVER_RE='^([0-9]+).([0-9]+).([0-9]+)(-([0-9A-Za-z.-]+))?(\+([0-9A-Za-z.-]))?$'
+    declare -r VER_RE='^([0-9]+)(.([0-9]+))?(.([0-9]+))?$'
 
-    [[ "$SHELTER_VERSION" =~ $SEMVER_RE ]]
+    [[ "$SHELTER_VERSION" =~ $SEMVER_RE ]] || return 1
 
-    declare shelter_major="${BASH_REMATCH[1]}"
-    declare shelter_minor="${BASH_REMATCH[2]}"
-    declare shelter_patch="${BASH_REMATCH[3]}"
+    declare major="${BASH_REMATCH[1]}"
+    declare minor="${BASH_REMATCH[2]}"
+    declare patch="${BASH_REMATCH[3]}"
 
-    declare version match
+    declare version
 
     for version in "$@"; do
 
-        match=1
+        [[ "$version" =~ $VER_RE ]] || continue
 
-        [[ "$version" =~ $VER_RE ]]
-
-        [[ "$shelter_major" -eq "${BASH_REMATCH[1]}" ]] || match=0
+        [[ "$major" -eq "${BASH_REMATCH[1]}" ]] || continue
 
         if [[ -n "${BASH_REMATCH[3]:+x}" ]]; then
-            [[ "$shelter_minor" -eq "${BASH_REMATCH[3]}" ]] || match=0
+            [[ "$minor" -eq "${BASH_REMATCH[3]}" ]] || continue
         fi
 
         if [[ -n "${BASH_REMATCH[5]:+x}" ]]; then
-            [[ "$shelter_patch" -eq "${BASH_REMATCH[5]}" ]] || match=0
+            [[ "$patch" -eq "${BASH_REMATCH[5]}" ]] || continue
         fi
 
-        if [[ "$match" -eq 1 ]]; then
-            return 0
-        fi
+        return 0
     done
 
     return 1
