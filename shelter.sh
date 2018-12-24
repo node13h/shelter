@@ -10,8 +10,11 @@
 
 set -euo pipefail
 
-# shellcheck disable=SC1091
-source shelter-config.sh
+declare -g SHELTER_PROG_DIR
+SHELTER_PROG_DIR=$(dirname "${BASH_SOURCE[0]:-}")
+
+# shellcheck source=shelter-config.sh
+source "${SHELTER_PROG_DIR%/}/shelter-config.sh"
 
 declare -ri SHELTER_BLOCK_ROOT=0
 declare -ri SHELTER_BLOCK_SUITES=1
