@@ -113,31 +113,35 @@ supported_shelter_versions () {
     declare -r SEMVER_RE='^([0-9]+).([0-9]+).([0-9]+)(-([0-9A-Za-z.-]+))?(\+([0-9A-Za-z.-]))?$'
     declare -r VER_RE='^([0-9]+)(.([0-9]+))?(.([0-9]+))?$'
 
-    [[ "$SHELTER_VERSION" =~ $SEMVER_RE ]] || return 1
+    if [[ "$SHELTER_VERSION" =~ $SEMVER_RE ]]; then
 
-    declare major="${BASH_REMATCH[1]}"
-    declare minor="${BASH_REMATCH[2]}"
-    declare patch="${BASH_REMATCH[3]}"
+        declare major="${BASH_REMATCH[1]}"
+        declare minor="${BASH_REMATCH[2]}"
+        declare patch="${BASH_REMATCH[3]}"
 
-    declare version
+        declare version
 
-    for version in "$@"; do
+        for version in "$@"; do
 
-        [[ "$version" =~ $VER_RE ]] || continue
+            [[ "$version" =~ $VER_RE ]] || continue
 
-        [[ "$major" -eq "${BASH_REMATCH[1]}" ]] || continue
+            [[ "$major" -eq "${BASH_REMATCH[1]}" ]] || continue
 
-        if [[ -n "${BASH_REMATCH[3]:+x}" ]]; then
-            [[ "$minor" -eq "${BASH_REMATCH[3]}" ]] || continue
-        fi
+            if [[ -n "${BASH_REMATCH[3]:+x}" ]]; then
+                [[ "$minor" -eq "${BASH_REMATCH[3]}" ]] || continue
+            fi
 
-        if [[ -n "${BASH_REMATCH[5]:+x}" ]]; then
-            [[ "$patch" -eq "${BASH_REMATCH[5]}" ]] || continue
-        fi
+            if [[ -n "${BASH_REMATCH[5]:+x}" ]]; then
+                [[ "$patch" -eq "${BASH_REMATCH[5]}" ]] || continue
+            fi
 
-        return 0
-    done
+            return 0
+        done
+    fi
 
+    printf >&2 'Unsupported version %s of Shelter detected. Supported versions are: %s\n' \
+               "$SHELTER_VERSION" \
+               "$*"
     return 1
 }
 
