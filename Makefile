@@ -79,7 +79,13 @@ release: release-start release-finish
 
 $(SDIST_TARBALL):
 	mkdir -p sdist; \
-	git archive --prefix=$(SDIST_DIR)/ -o $(SDIST_TARBALL) $(VERSION)
+	tar --transform 's~^~$(SDIST_DIR)/~' \
+	    --exclude .git \
+	    --exclude sdist \
+	    --exclude bdist \
+	    --exclude '*~' \
+	    -czf $(SDIST_TARBALL) \
+	    *
 
 sdist: $(SDIST_TARBALL)
 
