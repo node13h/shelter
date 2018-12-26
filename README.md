@@ -53,7 +53,7 @@
 - STDOUT and STDERR are captured
 - Test case, class, suite support
 - Multiple command-mocking strategies
-- Detailed documentation (`man shelter.sh`)
+- Detailed documentation (`man shelter.sh`, also see the [test suite bolerplate script](cookbook/boilerplate.sh) which you can copy and tailor to your needs)
 
 
 ## Showcase
