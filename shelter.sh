@@ -24,6 +24,16 @@ declare -ri SHELTER_BLOCK_TESTCASE=3
 declare -Ag SHELTER_PATCHED_COMMANDS=()
 declare -Ag SHELTER_PATCHED_COMMAND_STRATEGIES=()
 
+## @var SHELTER_FORMATTER_ERREXIT_ON
+## @brief Set the error exit condition for the built-in formatters
+## @details The following values are supported:
+## - none Exit with 0 even when there are failing tests
+## - failures-present Run all tests, exit with non-zero code if at least
+##   one test has failed
+## - first-failing Exit with non-zero code immediately after the first
+##   failed test
+declare -g SHELTER_FORMATTER_ERREXIT_ON='failures-present'
+
 ## @var SHELTER_SKIP_TEST_CASES
 ## @brief A list of test case commands to skip
 ## @details When set before executing test suites allows to skip
@@ -728,25 +738,38 @@ _shelter_formatter () {
     declare -a stderr=()
     declare -A flags=()
 
+    declare -i error_counter=0
+    declare -i failure_counter=0
+
+    declare transition_to
     declare lineno line
 
     output_header
 
     while read -r key value; do
 
+        unset transition_to
+
         # Keys which are allowed to change the block
         case "$key" in
             SUITES_NAME)
-                _shelter_formatter_block_transition "$SHELTER_BLOCK_SUITES"
+                transition_to="$SHELTER_BLOCK_SUITES"
                 ;;
             SUITE_NAME)
-                _shelter_formatter_block_transition "$SHELTER_BLOCK_SUITE"
+                transition_to="$SHELTER_BLOCK_SUITE"
                 ;;
             CMD|SKIPPED)
-                _shelter_formatter_block_transition "$SHELTER_BLOCK_TESTCASE"
+                transition_to="$SHELTER_BLOCK_TESTCASE"
                 ;;
         esac
 
+        if [[ -n "${transition_to:-}" ]]; then
+            if ! [[ "$error_counter" -eq 0 && "$failure_counter" -eq 0 ]] && [[ "$SHELTER_FORMATTER_ERREXIT_ON" = 'first-failing' ]]; then
+                break
+            fi
+
+            _shelter_formatter_block_transition "$transition_to"
+        fi
 
         case "$key" in
             SKIPPED)
@@ -761,11 +784,15 @@ _shelter_formatter () {
                 if [[ "$value" -eq 0 ]]; then
                     [[ "${flags[status]:-}" = failure ]] || flags[status]=success
                 else
-                    [[ "${flags[status]:-}" = failure ]] || flags[status]=error
+                    if ! [[ "${flags[status]:-}" = failure ]]; then
+                        flags[status]=error
+                        error_counter=$((error_counter+1))
+                    fi
                 fi
                 ;;
             ASSERT)
                 flags[status]=failure
+                failure_counter=$((failure_counter+1))
                 output_body_add_failure "${value%% *}" "${value#* }"
                 ;;
             STDOUT)
@@ -783,6 +810,11 @@ _shelter_formatter () {
     _shelter_formatter_block_transition "$SHELTER_BLOCK_ROOT"
 
     output_footer
+
+    if ! [[ "$SHELTER_FORMATTER_ERREXIT_ON" = 'none' ]]; then
+        [[ "$failure_counter" -eq 0 ]] || return 1
+        [[ "$error_counter" -eq 0 ]] || return 2
+    fi
 }
 
 # shellcheck disable=SC2030,SC2031
