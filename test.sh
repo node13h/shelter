@@ -472,7 +472,7 @@ EOF
 )
 
 test_shelter_junit_formatter_suites () (
-    test_shelter_junit_formatter_suites_mock () {
+    test_shelter_formatter_suites_mock () {
         cat <<"EOF"
 SUITES_NAME all
 SUITES_TIME 2.03
@@ -519,7 +519,7 @@ STDOUT 3 with some "standard error" output
 SKIPPED cmd_5
 EOF
     }
-    diff -du <(test_shelter_junit_formatter_suites_mock | shelter_junit_formatter) - <<"EOF"
+    diff -du <(test_shelter_formatter_suites_mock | shelter_junit_formatter) - <<"EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites errors="1" failures="1" name="all" tests="6" time="2.03">
 <testsuite errors="1" failures="1" name="test_shelter_run_test_suites_suite_mock_1" skipped="0" tests="3" time="1.52">
@@ -557,7 +557,7 @@ EOF
 )
 
 test_shelter_junit_formatter_suite () (
-    test_shelter_junit_formatter_suites_mock () {
+    test_shelter_formatter_suite_mock () {
         cat <<"EOF"
 SUITE_NAME test_shelter_run_test_suites_suite_mock_1
 SUITE_TIME 1.52
@@ -583,7 +583,7 @@ STDERR 1 Boom!
 STDERR 2 Something went wrong :<
 EOF
     }
-    diff -du <(test_shelter_junit_formatter_suites_mock | shelter_junit_formatter) - <<"EOF"
+    diff -du <(test_shelter_formatter_suite_mock | shelter_junit_formatter) - <<"EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuite errors="1" failures="1" name="test_shelter_run_test_suites_suite_mock_1" skipped="0" tests="3" time="1.52">
 <testcase classname="testclass" name="cmd_1" status="0" time="0.01">
@@ -603,7 +603,7 @@ EOF
 )
 
 test_shelter_junit_formatter_testcase () (
-    test_shelter_junit_formatter_suites_mock () {
+    test_shelter_formatter_testcase_mock () {
         cat <<"EOF"
 CMD cmd_3
 ENV VAR1 declare\ -i\ VAR1=\"31895\"
@@ -615,7 +615,7 @@ STDERR 1 Boom!
 STDERR 2 Something went wrong :<
 EOF
     }
-    diff -du <(test_shelter_junit_formatter_suites_mock | shelter_junit_formatter) - <<"EOF"
+    diff -du <(test_shelter_formatter_testcase_mock | shelter_junit_formatter) - <<"EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 <testcase name="cmd_3" status="1" time="0.01">
 <failure message="Assertion error!" type="some_assert_fn"></failure>
@@ -628,7 +628,7 @@ EOF
 )
 
 test_shelter_human_formatter_suites () (
-    test_shelter_human_formatter_suites_mock () {
+    test_shelter_formatter_suites_mock () {
         cat <<"EOF"
 SUITES_NAME all
 SUITES_TIME 2.03
@@ -675,7 +675,7 @@ STDOUT 3 with some "standard error" output
 SKIPPED cmd_5
 EOF
     }
-    diff -du <(test_shelter_human_formatter_suites_mock | shelter_human_formatter) - <<"EOF"
+    diff -du <(test_shelter_formatter_suites_mock | shelter_human_formatter) - <<"EOF"
 Suites: all
 
  Suite: test_shelter_run_test_suites_suite_mock_1 (1.52s)
@@ -708,7 +708,7 @@ EOF
 )
 
 test_shelter_human_formatter_suite () (
-    test_shelter_human_formatter_suites_mock () {
+    test_shelter_formatter_suite_mock () {
         cat <<"EOF"
 SUITE_NAME test_shelter_run_test_suites_suite_mock_1
 SUITE_TIME 1.52
@@ -734,7 +734,7 @@ STDERR 1 Boom!
 STDERR 2 Something went wrong :<
 EOF
     }
-    diff -du <(test_shelter_human_formatter_suites_mock | shelter_human_formatter) - <<"EOF"
+    diff -du <(test_shelter_formatter_suite_mock | shelter_human_formatter) - <<"EOF"
 Suite: test_shelter_run_test_suites_suite_mock_1 (1.52s)
 
  [[1;92m+[m] [1;97mtestclass/cmd_1[m (0.01s)
@@ -753,7 +753,7 @@ EOF
 )
 
 test_shelter_human_formatter_testcase () (
-    test_shelter_human_formatter_suites_mock () {
+    test_shelter_formatter_testcase_mock () {
         cat <<"EOF"
 CMD cmd_3
 ENV VAR1 declare\ -i\ VAR1=\"31895\"
@@ -765,7 +765,7 @@ STDERR 1 Boom!
 STDERR 2 Something went wrong :<
 EOF
     }
-    diff -du <(test_shelter_human_formatter_suites_mock | shelter_human_formatter) - <<"EOF"
+    diff -du <(test_shelter_formatter_testcase_mock | shelter_human_formatter) - <<"EOF"
 [[1;91mF[m] [1;97mcmd_3[m (exit [1;31m1[m) (0.01s)
     [1;91mAssertion error![m (some_assert_fn)
 
