@@ -602,6 +602,45 @@ EOF
 EOF
 )
 
+test_shelter_junit_formatter_suite_first_failing () (
+    test_shelter_formatter_suite_mock () {
+        cat <<"EOF"
+SUITE_NAME test_shelter_run_test_suites_suite_mock_1
+SUITE_TIME 1.52
+SUITE_TESTS 3
+SUITE_FAILURES 1
+SUITE_ERRORS 1
+SUITE_SKIPPED 0
+CMD cmd_1
+CLASS testclass
+TIME 0.01
+EXIT 0
+CMD cmd_2
+CLASS testclass
+TIME 1.5
+EXIT 1
+ENV VAR1 declare\ -i\ VAR1=\"31895\"
+ENV VAR2 declare\ VAR2=\"A\ String\"
+CMD cmd_3
+ASSERT some_assert_fn Assertion error!
+TIME 0.01
+EXIT 1
+STDERR 1 Boom!
+STDERR 2 Something went wrong :<
+EOF
+    }
+    diff -du <(SHELTER_FORMATTER_ERREXIT_ON='first-failing'; test_shelter_formatter_suite_mock | shelter_junit_formatter) - <<"EOF"
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite errors="1" failures="1" name="test_shelter_run_test_suites_suite_mock_1" skipped="0" tests="3" time="1.52">
+<testcase classname="testclass" name="cmd_1" status="0" time="0.01">
+</testcase>
+<testcase classname="testclass" name="cmd_2" status="1" time="1.5">
+<error></error>
+</testcase>
+</testsuite>
+EOF
+)
+
 test_shelter_junit_formatter_testcase () (
     test_shelter_formatter_testcase_mock () {
         cat <<"EOF"
@@ -625,6 +664,73 @@ EOF
 </system-err>
 </testcase>
 EOF
+)
+
+test_shelter_junit_formatter_default_errexit_fail () (
+    declare rc
+
+    test_shelter_formatter_mock () {
+        cat <<"EOF"
+CMD cmd_3
+ENV VAR1 declare\ -i\ VAR1=\"31895\"
+ENV VAR2 declare\ VAR2=\"A\ String\"
+ASSERT some_assert_fn Assertion error!
+TIME 0.01
+EXIT 1
+EOF
+    }
+
+    set +e
+    (
+        set -e
+        test_shelter_formatter_mock | shelter_junit_formatter >/dev/null
+    )
+    rc="$?"
+    set -e
+
+    [[ "$rc" -eq 1 ]]
+)
+
+test_shelter_junit_formatter_default_errexit_error () (
+    declare rc
+
+    test_shelter_formatter_mock () {
+        cat <<"EOF"
+CMD cmd_3
+ENV VAR1 declare\ -i\ VAR1=\"31895\"
+ENV VAR2 declare\ VAR2=\"A\ String\"
+TIME 0.01
+EXIT 1
+EOF
+    }
+
+    set +e
+    (
+        set -e
+        test_shelter_formatter_mock | shelter_junit_formatter >/dev/null
+    )
+    rc="$?"
+    set -e
+
+    [[ "$rc" -eq 2 ]]
+)
+
+test_shelter_junit_formatter_default_errexit_disabled () (
+    declare rc
+
+    test_shelter_formatter_mock () {
+        cat <<"EOF"
+CMD cmd_3
+ENV VAR1 declare\ -i\ VAR1=\"31895\"
+ENV VAR2 declare\ VAR2=\"A\ String\"
+ASSERT some_assert_fn Assertion error!
+TIME 0.01
+EXIT 1
+EOF
+    }
+
+    SHELTER_FORMATTER_ERREXIT_ON='none'
+    test_shelter_formatter_mock | shelter_junit_formatter >/dev/null
 )
 
 test_shelter_human_formatter_suites () (
@@ -752,6 +858,43 @@ Test results: 1 passed, 1 failed, 1 errors, 0 skipped
 EOF
 )
 
+test_shelter_human_formatter_suite_first_failing () (
+    test_shelter_formatter_suite_mock () {
+        cat <<"EOF"
+SUITE_NAME test_shelter_run_test_suites_suite_mock_1
+SUITE_TIME 1.52
+SUITE_TESTS 3
+SUITE_FAILURES 1
+SUITE_ERRORS 1
+SUITE_SKIPPED 0
+CMD cmd_1
+CLASS testclass
+TIME 0.01
+EXIT 0
+CMD cmd_2
+CLASS testclass
+TIME 1.5
+EXIT 1
+ENV VAR1 declare\ -i\ VAR1=\"31895\"
+ENV VAR2 declare\ VAR2=\"A\ String\"
+CMD cmd_3
+ASSERT some_assert_fn Assertion error!
+TIME 0.01
+EXIT 1
+STDERR 1 Boom!
+STDERR 2 Something went wrong :<
+EOF
+    }
+    diff -du <(SHELTER_FORMATTER_ERREXIT_ON='first-failing'; test_shelter_formatter_suite_mock | shelter_human_formatter) - <<"EOF"
+Suite: test_shelter_run_test_suites_suite_mock_1 (1.52s)
+
+ [[1;92m+[m] [1;97mtestclass/cmd_1[m (0.01s)
+ [[1;31mE[m] [1;97mtestclass/cmd_2[m (exit [1;31m1[m) (1.5s)
+
+Test results: 1 passed, 0 failed, 1 errors, 0 skipped
+EOF
+)
+
 test_shelter_human_formatter_testcase () (
     test_shelter_formatter_testcase_mock () {
         cat <<"EOF"
@@ -777,6 +920,73 @@ EOF
 
 Test results: 0 passed, 1 failed, 0 errors, 0 skipped
 EOF
+)
+
+test_shelter_human_formatter_default_errexit_fail () (
+    declare rc
+
+    test_shelter_formatter_mock () {
+        cat <<"EOF"
+CMD cmd_3
+ENV VAR1 declare\ -i\ VAR1=\"31895\"
+ENV VAR2 declare\ VAR2=\"A\ String\"
+ASSERT some_assert_fn Assertion error!
+TIME 0.01
+EXIT 1
+EOF
+    }
+
+    set +e
+    (
+        set -e
+        test_shelter_formatter_mock | shelter_human_formatter >/dev/null
+    )
+    rc="$?"
+    set -e
+
+    [[ "$rc" -eq 1 ]]
+)
+
+test_shelter_human_formatter_default_errexit_error () (
+    declare rc
+
+    test_shelter_formatter_mock () {
+        cat <<"EOF"
+CMD cmd_3
+ENV VAR1 declare\ -i\ VAR1=\"31895\"
+ENV VAR2 declare\ VAR2=\"A\ String\"
+TIME 0.01
+EXIT 1
+EOF
+    }
+
+    set +e
+    (
+        set -e
+        test_shelter_formatter_mock | shelter_human_formatter >/dev/null
+    )
+    rc="$?"
+    set -e
+
+    [[ "$rc" -eq 2 ]]
+)
+
+test_shelter_human_formatter_default_errexit_disabled () (
+    declare rc
+
+    test_shelter_formatter_mock () {
+        cat <<"EOF"
+CMD cmd_3
+ENV VAR1 declare\ -i\ VAR1=\"31895\"
+ENV VAR2 declare\ VAR2=\"A\ String\"
+ASSERT some_assert_fn Assertion error!
+TIME 0.01
+EXIT 1
+EOF
+    }
+
+    SHELTER_FORMATTER_ERREXIT_ON='none'
+    test_shelter_formatter_mock | shelter_human_formatter >/dev/null
 )
 
 test_patch_command_function_strategy () {
