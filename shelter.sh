@@ -10,6 +10,21 @@
 
 set -euo pipefail
 
+declare -g SHELTER_SED_CMD
+# We only support GNU sed
+case "$(uname -s)" in
+    FreeBSD|OpenBSD|Darwin)
+        SHELTER_SED_CMD='gsed'
+        ;;
+    *)
+        SHELTER_SED_CMD='sed'
+        ;;
+esac
+
+if ! command -v "$SHELTER_SED_CMD" &>/dev/null; then
+    printf 'Please install %s\n' "$SHELTER_SED_CMD"
+fi
+
 declare -g SHELTER_PROG_DIR
 SHELTER_PROG_DIR=$(dirname "${BASH_SOURCE[0]:-}")
 
@@ -80,7 +95,7 @@ _shelter_cleanup () {
 trap _shelter_cleanup EXIT
 
 _annotated_eval () {
-    eval "$1" 2> >(sed -u "s/^/STDERR /") > >(sed -u "s/^/STDOUT /")
+    eval "$1" 2> >("$SHELTER_SED_CMD" -u "s/^/STDERR /") > >("$SHELTER_SED_CMD" -u "s/^/STDOUT /")
 }
 
 # This function is used internally to emit assertion messages
@@ -374,7 +389,7 @@ shelter_run_test_case () {
             # and reassemble back into a single block later (sort -V -k 2).
             time eval '(set -eu; unset TIMEFORMAT shelter_shopt_backup; trap "_annotated_eval _shelter_cleanup_temp_dir" EXIT; _annotated_eval "$1")' \
                 | { grep -n '' || true; } \
-                | sed -u 's/^\([0-9]\+\):\(STDOUT\|STDERR\) /\2 \1 /'
+                | "$SHELTER_SED_CMD" -u 's/^\([0-9]\+\):\(STDOUT\|STDERR\) /\2 \1 /'
 
             declare rc="$?"
 
@@ -384,7 +399,7 @@ shelter_run_test_case () {
                 eval "$cmd"
             done
 
-        } 2> >(sed -u "s/^/TIME /") {SHELTER_ASSERT_FD}> >(sed -u "s/^/ASSERT /")
+        } 2> >("$SHELTER_SED_CMD" -u "s/^/TIME /") {SHELTER_ASSERT_FD}> >("$SHELTER_SED_CMD" -u "s/^/ASSERT /")
 
         printf 'EXIT %s\n' "$rc"
 
@@ -480,7 +495,7 @@ shelter_run_test_suite () {
                     shelter_suite_failures+=1
                     ;;
                 TIME)
-                    shelter_suite_time=$(bc <<< "$shelter_suite_time + $value" | sed 's/^\./0./')
+                    shelter_suite_time=$(bc <<< "$shelter_suite_time + $value" | "$SHELTER_SED_CMD" 's/^\./0./')
                     ;;
             esac
 
@@ -496,7 +511,7 @@ shelter_run_test_suite () {
         printf '0 SUITE_SKIPPED %s\n' "$shelter_suite_skipped"
         printf '0 SUITE_TIME %s\n' "$shelter_suite_time"
 
-    } | sort -n | sed -u 's/^[0-9]\+ //'
+    } | sort -n | "$SHELTER_SED_CMD" -u 's/^[0-9]\+ //'
 }
 
 
@@ -576,7 +591,7 @@ shelter_run_test_suites () {
                         shelter_suites_tests+="$value"
                         ;;
                     SUITE_TIME)
-                        shelter_suites_time=$(bc <<< "$shelter_suites_time + $value" | sed 's/^\./0./')
+                        shelter_suites_time=$(bc <<< "$shelter_suites_time + $value" | "$SHELTER_SED_CMD" 's/^\./0./')
                         ;;
                 esac
 
@@ -593,7 +608,7 @@ shelter_run_test_suites () {
         printf '0 SUITES_FAILURES %s\n' "$shelter_suites_failures"
         printf '0 SUITES_TIME %s\n' "$shelter_suites_time"
 
-    } | sort -n | sed -u 's/^[0-9]\+ //'
+    } | sort -n | "$SHELTER_SED_CMD" -u 's/^[0-9]\+ //'
 }
 
 # This function is used internally to handle
@@ -860,11 +875,11 @@ shelter_junit_formatter () {
         }
 
         xml_escaped () {
-            sed -e 's/\&/\&amp;/g' \
-                -e 's/</\&lt;/g' \
-                -e 's/>/\&gt;/g' \
-                -e 's/"/\&quot;/g' \
-                -e "s/'/\\&apos;/g"
+            "$SHELTER_SED_CMD" -e 's/\&/\&amp;/g' \
+                               -e 's/</\&lt;/g' \
+                               -e 's/>/\&gt;/g' \
+                               -e 's/"/\&quot;/g' \
+                               -e "s/'/\\&apos;/g"
         }
 
         xml_attributes () {

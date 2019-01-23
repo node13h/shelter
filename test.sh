@@ -5,6 +5,21 @@
 
 set -euo pipefail
 
+declare -g SED_CMD
+# We only support GNU sed
+case "$(uname -s)" in
+    FreeBSD|OpenBSD|Darwin)
+        SED_CMD='gsed'
+        ;;
+    *)
+        SED_CMD='sed'
+        ;;
+esac
+
+if ! command -v "$SED_CMD" &>/dev/null; then
+    printf 'Please install %s\n' "$SED_CMD"
+fi
+
 declare -g PROG_DIR
 PROG_DIR=$(dirname "${BASH_SOURCE[@]}")
 
@@ -114,7 +129,7 @@ EOF
 }
 
 test_assert_stdout_assert_fd_message () {
-    diff -du <(assert_stdout <(echo TEST) <(echo FAIL) 'Assert failed!' {SHELTER_ASSERT_FD}>&1 &>/dev/null) - <<"EOF"
+    diff -du <(assert_stdout 'echo TEST' <(echo FAIL) 'Assert failed!' {SHELTER_ASSERT_FD}>&1 &>/dev/null) - <<"EOF"
 assert_stdout Assert failed!
 EOF
 }
@@ -231,7 +246,7 @@ _predictable_test_case_output () {
     # 1. replace TIME value with static 0.01
     # 2. natural sort to split STDOUT and STDERR into separate blocks (sequence numbers will ensure the correct ordering within a block)
     # 3. remove sequence numbers, which may differ between runs due to the multithreaded processing of STDOUT and STDERR
-    sed 's/^TIME [0-9]*\.[0-9]\+$/TIME 0.01/' | sort -V | sed 's/\(STDOUT\|STDERR\) [0-9]\+/\1/'
+    "$SED_CMD" 's/^TIME [0-9]*\.[0-9]\+$/TIME 0.01/' | sort -V | "$SED_CMD" 's/\(STDOUT\|STDERR\) [0-9]\+/\1/'
 }
 
 _exclude_env () {
