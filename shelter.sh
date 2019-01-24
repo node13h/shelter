@@ -11,18 +11,29 @@
 set -euo pipefail
 
 declare -g SHELTER_SED_CMD
+declare -g SHELTER_MKTEMP_CMD
+declare -g SHELTER_OS_IMPLEMENTATION
+
+SHELTER_OS_IMPLEMENTATION=$(uname -s)
+
 # We only support GNU sed
-case "$(uname -s)" in
+case "$SHELTER_OS_IMPLEMENTATION" in
     FreeBSD|OpenBSD|Darwin)
         SHELTER_SED_CMD='gsed'
+        SHELTER_MKTEMP_CMD='gmktemp'
         ;;
     *)
         SHELTER_SED_CMD='sed'
+        SHELTER_MKTEMP_CMD='mktemp'
         ;;
 esac
 
 if ! command -v "$SHELTER_SED_CMD" &>/dev/null; then
     printf 'Please install %s\n' "$SHELTER_SED_CMD"
+fi
+
+if ! command -v "$SHELTER_MKTEMP_CMD" &>/dev/null; then
+    printf '%s is missing. Please install coreutils\n' "$SHELTER_SED_CMD"
 fi
 
 declare -g SHELTER_PROG_DIR
@@ -60,7 +71,7 @@ declare -ag SHELTER_SKIP_TEST_CASES=()
 # It provides a side channel for assertion messages
 [[ -n "${SHELTER_ASSERT_FD:-}" ]] || exec {SHELTER_ASSERT_FD}>&2
 
-SHELTER_TEMP_DIR=$(mktemp -d)
+SHELTER_TEMP_DIR=$("$SHELTER_MKTEMP_CMD" -d)
 declare -rg SHELTER_TEMP_DIR
 
 mkdir "${SHELTER_TEMP_DIR}/bin"
@@ -1243,7 +1254,11 @@ patch_command () {
             SHELTER_PATCHED_COMMANDS["$name"]="$script"
             ;;
         mount)
-            script=$(mktemp --tmpdir="$SHELTER_TEMP_DIR")
+            if ! [[ "$SHELTER_OS_IMPLEMENTATION" = 'Linux' ]]; then
+                printf 'Mount strategy is only supported on Linux\n'
+                return 1
+            fi
+            script=$("$SHELTER_MKTEMP_CMD" --tmpdir="$SHELTER_TEMP_DIR")
             cat >"$script" <<EOF
 #!/usr/bin/env bash
 
