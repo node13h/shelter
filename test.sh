@@ -1241,19 +1241,19 @@ test_supported_shelter_versions_major_success () {
 test_supported_shelter_versions_major_minor_patch_fail () {
     SHELTER_VERSION='0.5.1'
 
-    _negate_status supported_shelter_versions 1 2 0.5.2 3 4
+    _negate_status supported_shelter_versions 1 2 0.5.2 3 4 2>/dev/null
 }
 
 test_supported_shelter_versions_major_minor_fail () {
     SHELTER_VERSION='0.5.1'
 
-    _negate_status supported_shelter_versions 1 2 0.6 3 4
+    _negate_status supported_shelter_versions 1 2 0.6 3 4 2>/dev/null
 }
 
 test_supported_shelter_versions_major_fail () {
     SHELTER_VERSION='0.5.1'
 
-    _negate_status supported_shelter_versions 1 2 3 4
+    _negate_status supported_shelter_versions 1 2 3 4 2>/dev/null
 }
 
 
