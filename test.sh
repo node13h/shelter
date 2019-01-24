@@ -6,8 +6,12 @@
 set -euo pipefail
 
 declare -g SED_CMD
+declare -g OS_IMPLEMENTATION
+
+OS_IMPLEMENTATION=$(uname -s)
+
 # We only support GNU sed
-case "$(uname -s)" in
+case "$OS_IMPLEMENTATION" in
     FreeBSD|OpenBSD|Darwin)
         SED_CMD='gsed'
         ;;
@@ -1049,6 +1053,11 @@ test_patch_command_mount_strategy () {
         return 0
     fi
 
+    if ! [[ "$OS_IMPLEMENTATION" = 'Linux' ]]; then
+        >&2 printf 'Mount strategy is only supported on Linux. Skipping %s\n' "${FUNCNAME[0]}"
+        return 0
+    fi
+
     patch_command mount '/usr/bin/true' 'echo "Hello"'
 
     mountpoint -q "/usr/bin/true"
@@ -1072,6 +1081,11 @@ test_patch_command_mount_strategy_fail_pathched_already () {
         return 0
     fi
 
+    if ! [[ "$OS_IMPLEMENTATION" = 'Linux' ]]; then
+        >&2 printf 'Mount strategy is only supported on Linux. Skipping %s\n' "${FUNCNAME[0]}"
+        return 0
+    fi
+
     patch_command mount /usr/bin/true 'echo "Hello"'
     _negate_status patch_command mount /usr/bin/true 'echo "Hello"' &>/dev/null
 
@@ -1084,6 +1098,11 @@ test_shelter_run_test_case_cleans_up_patch_command_mount () {
 
     if ! [[ "$(id -u)" -eq 0 ]]; then
         >&2 printf 'Need root privileges to run %s. Skipping\n' "${FUNCNAME[0]}"
+        return 0
+    fi
+
+    if ! [[ "$OS_IMPLEMENTATION" = 'Linux' ]]; then
+        >&2 printf 'Mount strategy is only supported on Linux. Skipping %s\n' "${FUNCNAME[0]}"
         return 0
     fi
 
@@ -1156,6 +1175,11 @@ test_unpatch_command_mount_strategy () {
 
     if ! [[ "$(id -u)" -eq 0 ]]; then
         >&2 printf 'Need root privileges to run %s. Skipping\n' "${FUNCNAME[0]}"
+        return 0
+    fi
+
+    if ! [[ "$OS_IMPLEMENTATION" = 'Linux' ]]; then
+        >&2 printf 'Mount strategy is only supported on Linux. Skipping %s\n' "${FUNCNAME[0]}"
         return 0
     fi
 
