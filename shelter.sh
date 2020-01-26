@@ -13,6 +13,7 @@ set -euo pipefail
 declare -g SHELTER_SED_CMD
 declare -g SHELTER_MKTEMP_CMD
 declare -g SHELTER_OS_IMPLEMENTATION
+declare -g SHELTER_SAVED_EXIT_TRAP
 
 SHELTER_OS_IMPLEMENTATION=$(uname -s)
 
@@ -101,8 +102,15 @@ _shelter_cleanup_temp_dir () {
 _shelter_cleanup () {
     rmdir "${SHELTER_TEMP_DIR}/bin"
     rmdir "$SHELTER_TEMP_DIR"
+
+    declare -a original_trap
+    eval "original_trap=(${SHELTER_SAVED_EXIT_TRAP})"
+    if [[ "${#original_trap[@]}" -gt 0 ]]; then
+        eval "${original_trap[2]:-}"
+    fi
 }
 
+SHELTER_SAVED_EXIT_TRAP=$(trap -p EXIT)
 trap _shelter_cleanup EXIT
 
 _annotated_eval () {
