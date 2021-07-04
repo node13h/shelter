@@ -216,7 +216,7 @@ assert_stdout () {
     declare expected_file="${2:--}"
     declare msg="${3:-STDOUT of \"${cmd}\" does not match the contents of \"${expected_file}\"}"
 
-    diff -du <(eval "$cmd") "$expected_file" || _assert_msg "$msg"
+    diff -du <(eval "$cmd" <&-) "$expected_file" || _assert_msg "$msg"
 }
 
 ## @fn assert_success ()
@@ -241,7 +241,7 @@ assert_success () {
     set +e
     (
         set -e
-        eval "$cmd"
+        eval "$cmd" <&-
     )
     rc="$?"
     set -e
@@ -287,7 +287,7 @@ assert_fail () {
     set +e
     (
         set -e
-        eval "$cmd"
+        eval "$cmd" <&-
     )
     rc="$?"
     set -e
@@ -318,7 +318,7 @@ assert_stdout_contains () {
     declare regex="${2}"
     declare msg="${3:-STDOUT of \"${cmd}\" does not contain \"${regex}\"}"
 
-    grep -E "$regex" <(eval "$cmd") &>/dev/null || _assert_msg "$msg"
+    grep -E "$regex" <(eval "$cmd" <&-) &>/dev/null || _assert_msg "$msg"
 }
 
 
@@ -340,7 +340,7 @@ assert_stdout_not_contains () {
     declare regex="${2}"
     declare msg="${3:-STDOUT of \"${cmd}\" contains \"${regex}\"}"
 
-    ! grep -E "$regex" <(eval "$cmd") &>/dev/null || _assert_msg "$msg"
+    ! grep -E "$regex" <(eval "$cmd" <&-) &>/dev/null || _assert_msg "$msg"
 }
 
 
