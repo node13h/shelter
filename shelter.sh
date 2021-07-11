@@ -406,7 +406,7 @@ shelter_run_test_case () {
             # user to perform sorting (sort -V) to split STDOUT and STDERR into
             # separate blocks (preserving the correct order within the block)
             # and reassemble back into a single block later (sort -V -k 2).
-            time eval '(set -eu; unset TIMEFORMAT shelter_shopt_backup; trap "_annotated_eval _shelter_cleanup_temp_dir" EXIT; _annotated_eval "$1")' \
+            time eval '(set -eu; unset TIMEFORMAT shelter_shopt_backup; trap "_annotated_eval _shelter_cleanup_temp_dir" EXIT; _annotated_eval "$1")' <&- \
                 | { grep -n '' || true; } \
                 | "$SHELTER_SED_CMD" -u 's/^\([0-9]\+\):\(STDOUT\|STDERR\) /\2 \1 /'
 
