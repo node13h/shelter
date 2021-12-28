@@ -14,6 +14,7 @@ declare -g SHELTER_SED_CMD
 declare -g SHELTER_MKTEMP_CMD
 declare -g SHELTER_OS_IMPLEMENTATION
 declare -g SHELTER_SAVED_EXIT_TRAP
+declare -g SHELTER_DEBUG="${SHELTER_DEBUG:-FALSE}"
 
 SHELTER_OS_IMPLEMENTATION=$(uname -s)
 
@@ -378,6 +379,10 @@ shelter_run_test_case () {
                 return 0
             fi
         done
+    fi
+
+    if [[ "$SHELTER_DEBUG" == TRUE ]]; then
+        printf -- '- Executing %s\n' "$1" >&2
     fi
 
     printf 'CMD %s\n' "$1"
