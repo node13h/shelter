@@ -114,6 +114,25 @@ _shelter_cleanup () {
 SHELTER_SAVED_EXIT_TRAP=$(trap -p EXIT)
 trap _shelter_cleanup EXIT
 
+_keep_fds () {
+    declare -a keep_fds=()
+    declare -i fd_nr
+    for fd_nr in "$@"; do
+        keep_fds[fd_nr]=yes
+    done
+
+    declare fd
+    for fd in /proc/"$BASHPID"/fd/*; do
+        fd_nr=$(basename "$fd")
+
+        if [[ -n "${keep_fds[$fd_nr]:+notempty}" ]]; then
+            continue
+        fi
+
+        eval "exec ${fd_nr}>&-"
+    done
+}
+
 _annotated_eval () {
     eval "$1" 2> >("$SHELTER_SED_CMD" -u "s/^/STDERR /") > >("$SHELTER_SED_CMD" -u "s/^/STDOUT /")
 }
@@ -217,7 +236,7 @@ assert_stdout () {
     declare expected_file="${2:--}"
     declare msg="${3:-STDOUT of \"${cmd}\" does not match the contents of \"${expected_file}\"}"
 
-    diff -du <(eval "$cmd" <&-) "$expected_file" || _assert_msg "$msg"
+    diff -du <(_keep_fds 1 2 255; eval "$cmd") "$expected_file" || _assert_msg "$msg"
 }
 
 ## @fn assert_success ()
@@ -242,7 +261,8 @@ assert_success () {
     set +e
     (
         set -e
-        eval "$cmd" <&-
+        _keep_fds 1 2 255
+        eval "$cmd"
     )
     rc="$?"
     set -e
@@ -288,7 +308,8 @@ assert_fail () {
     set +e
     (
         set -e
-        eval "$cmd" <&-
+        _keep_fds 1 2 255
+        eval "$cmd"
     )
     rc="$?"
     set -e
@@ -319,7 +340,7 @@ assert_stdout_contains () {
     declare regex="${2}"
     declare msg="${3:-STDOUT of \"${cmd}\" does not contain \"${regex}\"}"
 
-    grep -E "$regex" <(eval "$cmd" <&-) &>/dev/null || _assert_msg "$msg"
+    grep -E "$regex" <(_keep_fds 1 2 255; eval "$cmd") &>/dev/null || _assert_msg "$msg"
 }
 
 
@@ -341,7 +362,7 @@ assert_stdout_not_contains () {
     declare regex="${2}"
     declare msg="${3:-STDOUT of \"${cmd}\" contains \"${regex}\"}"
 
-    ! grep -E "$regex" <(eval "$cmd" <&-) &>/dev/null || _assert_msg "$msg"
+    ! grep -E "$regex" <(_keep_fds 1 2 255; eval "$cmd") &>/dev/null || _assert_msg "$msg"
 }
 
 
@@ -395,7 +416,8 @@ shelter_run_test_case () {
 
     unset var
 
-    {
+    # Isolate subshells for wait.
+    (
         {
             TIMEFORMAT=%R
 
@@ -411,7 +433,7 @@ shelter_run_test_case () {
             # user to perform sorting (sort -V) to split STDOUT and STDERR into
             # separate blocks (preserving the correct order within the block)
             # and reassemble back into a single block later (sort -V -k 2).
-            time eval '(set -eu; unset TIMEFORMAT shelter_shopt_backup; trap "_annotated_eval _shelter_cleanup_temp_dir" EXIT; _annotated_eval "$1")' <&- \
+            time eval '(set -eu; _keep_fds 1 2 255 "$SHELTER_ASSERT_FD"; unset TIMEFORMAT shelter_shopt_backup; trap "_annotated_eval _shelter_cleanup_temp_dir" EXIT; _annotated_eval "$1")' \
                 | { grep -n '' || true; } \
                 | "$SHELTER_SED_CMD" -u 's/^\([0-9]\+\):\(STDOUT\|STDERR\) /\2 \1 /'
 
@@ -423,11 +445,19 @@ shelter_run_test_case () {
                 eval "$cmd"
             done
 
+            # Close the file descriptor, otherwise the below "assert" process
+            # substitution will keep running in background causing the later wait
+            # to get stuck.
+            exec {SHELTER_ASSERT_FD}>&-
+
         } 2> >("$SHELTER_SED_CMD" -u "s/^/TIME /") {SHELTER_ASSERT_FD}> >("$SHELTER_SED_CMD" -u "s/^/ASSERT /")
 
-        printf 'EXIT %s\n' "$rc"
+        # Wait for all process substitution subshells to finish.
+        # I think this should catch _all_ of them, including those in _annotated_eval.
+        wait
 
-    } | cat  ## Synchronize all async output processors, otherwise some output (such as "TIME") may be sent to a consumer _after_ this function has completed execution, possible interfering with the output of the output of the subsequent test
+        printf 'EXIT %s\n' "$rc"
+    )
 }
 
 
