@@ -388,6 +388,7 @@ test_shelter_run_test_suite () (
 
     # Mock
     test_shelter_run_test_suite_suite_mock_1 () {
+        # shellcheck disable=SC2317
         cat <<EOF
 CMD cmd_1
 EXIT 0
@@ -426,6 +427,7 @@ test_shelter_run_test_suites () (
 
     # Mock
     test_shelter_run_test_suites_suite_mock_1 () {
+        # shellcheck disable=SC2317
         cat <<EOF
 CMD cmd_1
 EXIT 0
@@ -441,6 +443,7 @@ EOF
     }
 
     test_shelter_run_test_suites_suite_mock_2 () {
+        # shellcheck disable=SC2317
         cat <<EOF
 CMD cmd_1
 EXIT 0
@@ -1018,7 +1021,7 @@ Hello
 EOF
 
     unset -f true
-    unset SHELTER_PATCHED_COMMANDS['true']
+    unset 'SHELTER_PATCHED_COMMANDS[true]'
 
     diff -du <(true) <(:)
 }
@@ -1033,7 +1036,7 @@ Hello
 EOF
 
     unset -f true
-    unset SHELTER_PATCHED_COMMANDS['true']
+    unset 'SHELTER_PATCHED_COMMANDS[true]'
 
     diff -du <(bash -c 'true') <(:)
 }
@@ -1043,7 +1046,7 @@ test_patch_command_function_strategy_fail_pathched_already () {
     _negate_status patch_command function true 'echo "Hello"' &>/dev/null
 
     unset -f true
-    unset SHELTER_PATCHED_COMMANDS['true']
+    unset 'SHELTER_PATCHED_COMMANDS[true]'
 }
 
 test_patch_command_mount_strategy () {
@@ -1069,7 +1072,7 @@ EOF
 
     umount /usr/bin/true
     rm -f -- "${SHELTER_PATCHED_COMMANDS['/usr/bin/true']}"
-    unset SHELTER_PATCHED_COMMANDS['/usr/bin/true']
+    unset 'SHELTER_PATCHED_COMMANDS[/usr/bin/true]'
 
     diff -du <(true) <(:)
 }
@@ -1091,7 +1094,7 @@ test_patch_command_mount_strategy_fail_pathched_already () {
 
     umount /usr/bin/true
     rm -f -- "${SHELTER_PATCHED_COMMANDS['/usr/bin/true']}"
-    unset SHELTER_PATCHED_COMMANDS['/usr/bin/true']
+    unset 'SHELTER_PATCHED_COMMANDS[/usr/bin/true]'
 }
 
 test_shelter_run_test_case_cleans_up_patch_command_mount () {
@@ -1126,7 +1129,7 @@ Hello
 EOF
 
     rm -f -- "${SHELTER_PATCHED_COMMANDS['true']}"
-    unset SHELTER_PATCHED_COMMANDS['true']
+    unset 'SHELTER_PATCHED_COMMANDS[true]'
 
     diff -du <(env true) <(:)
 }
@@ -1136,7 +1139,7 @@ test_patch_command_path_strategy_fail_pathched_already () {
     _negate_status patch_command path true 'echo "Hello"' &>/dev/null
 
     rm -f -- "${SHELTER_PATCHED_COMMANDS['true']}"
-    unset SHELTER_PATCHED_COMMANDS['true']
+    unset 'SHELTER_PATCHED_COMMANDS[true]'
 }
 
 test_shelter_run_test_case_cleans_up_patch_command_path_override () {
@@ -1157,6 +1160,7 @@ test_unpatch_command_not_patched () {
 test_unpatch_command_function_strategy () (
 
     _test_command () {
+        # shellcheck disable=SC2317
         true
     }
 

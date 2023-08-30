@@ -1367,6 +1367,6 @@ unpatch_command () {
             ;;
     esac
 
-    unset SHELTER_PATCHED_COMMANDS["$name"]
-    unset SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]
+    unset 'SHELTER_PATCHED_COMMANDS["$name"]'
+    unset 'SHELTER_PATCHED_COMMAND_STRATEGIES["$name"]'
 }
